@@ -15,25 +15,61 @@ function runWeeklyAIAudit() {
   // =========================
   if (!dbSheet) {
     Logger.log("Sheet Daily_DB tidak ditemukan.");
-    return;
+    writeSystemLog(
+      "Weekly AI Audit",
+      "Validate Required Sheets",
+      "Error",
+      "Missing required sheet: Daily_DB"
+    );
+    return {
+      success: false,
+      error: "Sheet Daily_DB tidak ditemukan."
+    };
   }
 
 
   if (!logSheet) {
     Logger.log("Sheet Log tidak ditemukan.");
-    return;
+    writeSystemLog(
+      "Weekly AI Audit",
+      "Validate Required Sheets",
+      "Error",
+      "Missing required sheet: Log"
+    );
+    return {
+      success: false,
+      error: "Sheet Log tidak ditemukan."
+    };
   }
 
 
   if (!appSheet) {
     Logger.log("Sheet Applications tidak ditemukan.");
-    return;
+    writeSystemLog(
+      "Weekly AI Audit",
+      "Validate Required Sheets",
+      "Error",
+      "Missing required sheet: Applications"
+    );
+    return {
+      success: false,
+      error: "Sheet Applications tidak ditemukan."
+    };
   }
 
 
   if (!auditSheet) {
     Logger.log("Sheet AI_Audit tidak ditemukan.");
-    return;
+    writeSystemLog(
+      "Weekly AI Audit",
+      "Validate Required Sheets",
+      "Error",
+      "Missing required sheet: AI_Audit"
+    );
+    return {
+      success: false,
+      error: "Sheet AI_Audit tidak ditemukan."
+    };
   }
 
 
@@ -90,12 +126,14 @@ sevenDaysAgo.setDate(today.getDate() - 6);
   // =========================
   const habitData = dbSheet.getDataRange().getValues();
   let habitSummary = {};
+  let habitNotesContext = [];
 
 
   habitData.slice(1).forEach(row => {
     const habitDate = row[0] ? new Date(row[0]) : null;
     const habitName = row[2] || "Unnamed Habit";
     const isDone = row[3] === true;
+    const note = row[4] ? row[4].toString().trim() : "";
 
 
     if (habitDate && habitDate >= sevenDaysAgo) {
@@ -112,6 +150,16 @@ sevenDaysAgo.setDate(today.getDate() - 6);
 
       if (isDone) {
         habitSummary[habitName].done++;
+      }
+
+
+      if (note !== "") {
+        habitNotesContext.push({
+          date: habitDate,
+          habit: habitName,
+          completed: isDone,
+          note: note
+        });
       }
     }
   });
@@ -222,6 +270,10 @@ Habit Summary:
 ${JSON.stringify(habitSummary, null, 2)}
 
 
+Habit Notes / Reasons Context:
+${JSON.stringify(habitNotesContext, null, 2)}
+
+
 Trading History:
 ${JSON.stringify(tradeHistory, null, 2)}
 
@@ -265,6 +317,8 @@ Analyze trading activity, win/loss pattern, risk behavior, and any visible issue
 
 3. HABIT CONSISTENCY REVIEW
 Analyze habit consistency, including gym, learning, journaling, sleep, or other available habit data.
+Use Habit Notes / Reasons Context before judging discipline or consistency.
+Pay special attention to notes for incomplete habits. If an incomplete habit has a valid reason such as "no valid trading setup", illness, schedule conflict, or another clear constraint, do not automatically treat it as poor discipline. Distinguish between avoidable misses and justified skips.
 
 
 4. JOB APPLICATION PROGRESS REVIEW
@@ -287,6 +341,7 @@ Important rules:
 - Be specific and practical.
 - Do not give generic motivation.
 - Use only the data provided in Weekly data.
+- Consider Daily_DB notes/reasons before judging habit consistency.
 - Use the exact numbers provided in Career / Application Summary.
 - Do not invent, estimate, or assume application totals.
 - If Weekly Applications is empty, say no application records were found in the selected period.
@@ -332,8 +387,46 @@ ${weeklyData}
 
   try {
     const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
     const resText = response.getContentText();
-    const json = JSON.parse(resText);
+    let json;
+
+
+    try {
+      json = JSON.parse(resText);
+    } catch (parseError) {
+      Logger.log("Gemini response bukan JSON valid. Response: " + resText);
+      writeSystemLog(
+        "Weekly AI Audit",
+        "Parse Gemini Response",
+        "Error",
+        "Gemini response was not valid JSON. HTTP status: " + responseCode + ". Parse error: " + parseError.message + ". Raw response: " + resText
+      );
+      return {
+        success: false,
+        error: "Audit gagal dibuat karena respons AI belum valid. Silakan coba lagi nanti."
+      };
+    }
+
+
+    if (responseCode < 200 || responseCode >= 300) {
+      const apiMessage = json && json.error && json.error.message
+        ? json.error.message
+        : "No API error message returned.";
+
+
+      Logger.log("Gemini API error. HTTP status: " + responseCode + ". Response: " + resText);
+      writeSystemLog(
+        "Weekly AI Audit",
+        "Call Gemini API",
+        "Error",
+        "Gemini API returned HTTP status " + responseCode + ". API message: " + apiMessage + ". Raw response: " + resText
+      );
+      return {
+        success: false,
+        error: "Audit gagal dibuat karena layanan AI belum merespons dengan benar. Silakan coba lagi nanti."
+      };
+    }
 
 
     // =========================
@@ -341,13 +434,16 @@ ${weeklyData}
     // =========================
     if (!json.candidates || !json.candidates[0]) {
       Logger.log("Gemini tidak mengembalikan candidates. Response: " + resText);
-      auditSheet.appendRow([
-        new Date(),
-        "Gemini response error",
-        "Tidak ada candidates dari Gemini.",
-        resText
-      ]);
-      return;
+      writeSystemLog(
+        "Weekly AI Audit",
+        "Validate Gemini Response",
+        "Error",
+        "Gemini returned no candidates. Raw response: " + resText
+      );
+      return {
+        success: false,
+        error: "Audit gagal dibuat karena respons AI belum valid. Silakan coba lagi nanti."
+      };
     }
 
 
@@ -358,13 +454,16 @@ ${weeklyData}
       !json.candidates[0].content.parts[0].text
     ) {
       Logger.log("Format response Gemini tidak sesuai. Response: " + resText);
-      auditSheet.appendRow([
-        new Date(),
-        "Gemini format error",
-        "Format response Gemini tidak sesuai.",
-        resText
-      ]);
-      return;
+      writeSystemLog(
+        "Weekly AI Audit",
+        "Validate Gemini Response",
+        "Error",
+        "Gemini response format was malformed. Raw response: " + resText
+      );
+      return {
+        success: false,
+        error: "Audit gagal dibuat karena format respons AI belum valid. Silakan coba lagi nanti."
+      };
     }
 
 
@@ -396,23 +495,26 @@ writeSystemLog(
   "Success",
   "Weekly AI Audit generated successfully at row " + lastRow
 );
+    return {
+      success: true,
+      text: aiResponse,
+      row: lastRow
+    };
    } catch (e) {
     Logger.log("Terjadi kesalahan saat menjalankan AI Audit: " + e.message);
-
-
-    auditSheet.appendRow([
-      new Date(),
-      "Script error",
-      e.message,
-      "Cek Apps Script Logs untuk detail error."
-    ]);
 
 
     writeSystemLog(
       "Weekly AI Audit",
       "Generate Weekly Audit",
       "Error",
-      e.message
+      "Exception: " + e.message + (e.stack ? " | Stack: " + e.stack : "")
     );
+
+
+    return {
+      success: false,
+      error: "Audit gagal dijalankan karena terjadi error sistem. Silakan coba lagi nanti."
+    };
   }
 }

@@ -29,8 +29,10 @@ Simple walkthrough of the end-to-end flow:
 ## 5) Weekly AI Report Output
 
 - Weekly summary is saved to the audit sheet for review.
+- When triggered from Telegram, `/audit` returns a completion/error message and a short preview while keeping the full report in `AI_Audit`.
 - Output supports reflection and planning across:
   - daily activity consistency,
+  - habit notes/reasons from `Daily_DB`,
   - screenshot-based record quality/completeness,
   - job application progress.
 
@@ -44,3 +46,9 @@ Simple walkthrough of the end-to-end flow:
 - `/today`: displays today's checklist from `Daily_DB`.
 - `/status`: shows completed habits, total habits, and completion percentage.
 - Typing a habit name still checks off the matching habit for today.
+
+## V2.3 Weekly Audit Demo Notes
+
+- `/audit`: starts the weekly AI audit, then sends success/error feedback in Telegram.
+- Successful audits include a short Telegram preview and save the full report to `AI_Audit`.
+- Habit notes from `Daily_DB` column E are included as context, especially for incomplete habits.

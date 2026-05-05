@@ -227,7 +227,16 @@ return;
 
       if (text === "/audit") {
         sendText(chatId, "⏳ Menjalankan Audit... Tunggu sebentar.");
-        runWeeklyAIAudit();
+        const auditResult = runWeeklyAIAudit();
+
+
+        if (auditResult && auditResult.success) {
+          sendText(chatId, buildAuditSuccessMessage(auditResult));
+        } else {
+          sendText(chatId, buildAuditErrorMessage(auditResult));
+        }
+
+
         return;
       }
 
@@ -331,6 +340,60 @@ function buildHabitStatusMessage(data, today) {
 
 
   return "📊 Habit Hari Ini: " + done + "/" + total + " selesai (" + percentage + "%).";
+}
+
+
+function buildAuditSuccessMessage(auditResult) {
+  const preview = buildAuditPreview(auditResult.text || "");
+
+
+  return (
+    "✅ Audit mingguan selesai.\n" +
+    "Laporan lengkap sudah disimpan di sheet `AI_Audit`" +
+    (auditResult.row ? " row " + auditResult.row : "") +
+    ".\n\n" +
+    "*Preview:*\n" +
+    preview
+  );
+}
+
+
+function buildAuditErrorMessage(auditResult) {
+  const errorMessage = auditResult && auditResult.error
+    ? auditResult.error
+    : "Audit gagal dijalankan. Silakan coba lagi nanti.";
+
+
+  return (
+    "⚠️ Audit mingguan gagal dibuat.\n" +
+    escapeTelegramMarkdown(errorMessage) +
+    "\nDetail teknis sudah dicatat di `System_Log`."
+  );
+}
+
+
+function buildAuditPreview(text) {
+  const maxLength = 1200;
+  const cleanText = text ? text.toString().trim() : "";
+
+
+  if (cleanText === "") {
+    return "(Tidak ada preview yang tersedia.)";
+  }
+
+
+  if (cleanText.length <= maxLength) {
+    return escapeTelegramMarkdown(cleanText);
+  }
+
+
+  return escapeTelegramMarkdown(cleanText.substring(0, maxLength).trim()) +
+    "\n\n...preview dipotong. Laporan lengkap ada di `AI_Audit`.";
+}
+
+
+function escapeTelegramMarkdown(text) {
+  return text.toString().replace(/([_*`\[])/g, "\\$1");
 }
 
 

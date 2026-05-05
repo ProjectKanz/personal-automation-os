@@ -4,6 +4,29 @@ All notable changes to this project are documented here.
 
 ---
 
+## V2.3 (May 2026) - Weekly Audit UX + Context Upgrade
+
+### Added
+
+- Telegram `/audit` now sends a completion message after successful weekly audit generation.
+- Telegram `/audit` now sends a safe-length audit preview after success.
+- Telegram `/audit` now sends a clear error message if audit generation fails.
+- Weekly audit context now includes `Daily_DB` column E notes/reasons.
+
+### Changed
+
+- `runWeeklyAIAudit()` now returns a structured success/error result for Telegram notification handling.
+- Gemini weekly audit prompt now considers habit notes before judging habit consistency or discipline.
+
+### Notes
+
+- Full weekly audit reports are still saved to `AI_Audit`.
+- No Google Sheets schema changes.
+- No MT5 screenshot parsing changes.
+- No reminder trigger added.
+
+---
+
 ## V2.2 (May 2026) - Telegram Usability Upgrade
 
 ### Added
