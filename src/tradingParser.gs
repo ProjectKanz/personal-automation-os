@@ -7,7 +7,26 @@ function callGeminiVision(imageUrl, prompt) {
   const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
  
   const response = UrlFetchApp.fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY, options);
-  const resText = JSON.parse(response.getContentText()).candidates[0].content.parts[0].text;
+  const rawResponse = response.getContentText();
+  const parsed = JSON.parse(rawResponse);
+
+  if (!parsed.candidates || !parsed.candidates[0]) {
+    throw new Error("Gemini Vision response missing candidates.");
+  }
+
+  if (!parsed.candidates[0].content) {
+    throw new Error("Gemini Vision response missing content.");
+  }
+
+  if (!parsed.candidates[0].content.parts || !parsed.candidates[0].content.parts[0]) {
+    throw new Error("Gemini Vision response missing content parts.");
+  }
+
+  if (!parsed.candidates[0].content.parts[0].text) {
+    throw new Error("Gemini Vision response missing text output.");
+  }
+
+  const resText = parsed.candidates[0].content.parts[0].text;
  
   const start = resText.indexOf('[');
   const end = resText.lastIndexOf(']') + 1;

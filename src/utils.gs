@@ -1,8 +1,18 @@
 // Shared utilities and globals (Phase 1-2 split only).
 // TODO(v2.2): Add centralized property validation and safer error redaction.
-const GEMINI_API_KEY = PropertiesService
-.getScriptProperties()
-.getProperty("GEMINI_API_KEY"); 
+function getRequiredProperty(propertyName) {
+  const value = PropertiesService
+    .getScriptProperties()
+    .getProperty(propertyName);
+
+  if (value === null || value === undefined || value === "") {
+    throw new Error("Missing required Script Property: " + propertyName);
+  }
+
+  return value;
+}
+
+const GEMINI_API_KEY = getRequiredProperty("GEMINI_API_KEY");
 
 function writeSystemLog(module, action, status, message) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();

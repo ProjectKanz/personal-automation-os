@@ -1,22 +1,24 @@
 // Telegram module (Phase 1-2 split only).
 // TODO(v2.2): Split doPost into smaller handlers for easier testing/maintenance.
-const TOKEN = PropertiesService
-.getScriptProperties()
-.getProperty("TELEGRAM_TOKEN");
+const TOKEN = getRequiredProperty("TELEGRAM_TOKEN");
 
 
-const MY_ID = PropertiesService
-.getScriptProperties()
-.getProperty("TELEGRAM_USER_ID"); 
+const MY_ID = getRequiredProperty("TELEGRAM_USER_ID"); 
+
+const WEB_APP_URL = getRequiredProperty("WEB_APP_URL");
 
 
 // --- 2. AKTIVASI WEBHOOK ---
 function setWebhook() {
-const url = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
-const telegramUrl = "https://api.telegram.org/bot" + TOKEN + "/setWebhook?url=" + url;
-const response = UrlFetchApp.fetch(telegramUrl);
-Logger.log(response.getContentText());
-} 
+  const telegramUrl =
+    "https://api.telegram.org/bot" +
+    TOKEN +
+    "/setWebhook?url=" +
+    encodeURIComponent(WEB_APP_URL);
+
+  const response = UrlFetchApp.fetch(telegramUrl);
+  Logger.log(response.getContentText());
+}
 
 
 // --- 3. MESIN UTAMA (doPost) ---
