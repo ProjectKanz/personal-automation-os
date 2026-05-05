@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 
 ---
 
+## V2.2 (May 2026) - Telegram Usability Upgrade
+
+### Added
+
+- `/help` command for Telegram bot usage guidance.
+- `/today` command to show the current day's habit checklist from `Daily_DB`.
+- `/list` remains available as an alias for `/help`.
+
+### Changed
+
+- Improved `/status` response to include completed count, total count, and completion percentage.
+
+### Notes
+
+- No Google Sheets schema changes.
+- No MT5 screenshot parsing changes.
+- No weekly audit logic changes.
+- No new AI calls introduced.
+
+---
+
 ## V2.1-C (May 2026) - Portfolio Documentation Packaging
 
 ### Changed

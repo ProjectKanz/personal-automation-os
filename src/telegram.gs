@@ -205,41 +205,22 @@ return;
       const today = new Date().setHours(0, 0, 0, 0);
 
 
-      if (text === "/list") {
-        sendText(
-          chatId,
-          "🤖 *Menu Kanzan*:\n" +
-          "1. Kirim Foto (MT5 Log)\n" +
-          "2. `/status` (Habit)\n" +
-          "3. `/audit` (AI Audit)\n" +
-          "4. Ketik Nama Habit"
-        );
+      if (text === "/help" || text === "/list") {
+        sendText(chatId, buildTelegramHelpMessage());
 
 
         return;
       }
 
 
+      if (text === "/today") {
+        sendText(chatId, buildTodayHabitChecklist(data, today));
+        return;
+      }
+
+
       if (text === "/status") {
-        let done = 0;
-        let total = 0;
-
-
-        if (data.length > 1) {
-          data.slice(1).forEach(row => {
-            if (row && row[0] instanceof Date && row[0].getTime() === today) {
-              total++;
-
-
-              if (row[3] === true) {
-                done++;
-              }
-            }
-          });
-        }
-
-
-        sendText(chatId, "📊 Habit Hari Ini: " + done + "/" + total + " selesai.");
+        sendText(chatId, buildHabitStatusMessage(data, today));
         return;
       }
 
@@ -287,6 +268,69 @@ return;
 function getTelegramFileUrl(fileId) {
   const res = UrlFetchApp.fetch("https://api.telegram.org/bot" + TOKEN + "/getFile?file_id=" + fileId);
   return "https://api.telegram.org/file/bot" + TOKEN + "/" + JSON.parse(res.getContentText()).result.file_path;
+}
+
+
+function buildTelegramHelpMessage() {
+  return (
+    "🤖 *Menu Kanzan*:\n" +
+    "1. Kirim Foto (MT5 Log)\n" +
+    "2. `/today` - Checklist habit hari ini\n" +
+    "3. `/status` - Ringkasan progres habit\n" +
+    "4. `/audit` - AI Audit mingguan\n" +
+    "5. Ketik nama habit untuk mencentang\n\n" +
+    "`/list` tetap bisa dipakai sebagai alias `/help`."
+  );
+}
+
+
+function getTodayHabitRows(data, today) {
+  if (!data || data.length <= 1) return [];
+
+
+  return data.slice(1).filter(row =>
+    row && row[0] instanceof Date && row[0].getTime() === today
+  );
+}
+
+
+function buildTodayHabitChecklist(data, today) {
+  const todayRows = getTodayHabitRows(data, today);
+
+
+  if (todayRows.length === 0) {
+    return "📋 Belum ada habit untuk hari ini di Daily_DB.";
+  }
+
+
+  const checklist = todayRows.map(row => {
+    const marker = row[3] === true ? "✅" : "⬜";
+    const habitName = row[2] || "(Tanpa nama habit)";
+    return marker + " " + habitName;
+  });
+
+
+  return "📋 *Habit Hari Ini:*\n" + checklist.join("\n");
+}
+
+
+function buildHabitStatusMessage(data, today) {
+  const todayRows = getTodayHabitRows(data, today);
+  const total = todayRows.length;
+  let done = 0;
+
+
+  todayRows.forEach(row => {
+    if (row[3] === true) {
+      done++;
+    }
+  });
+
+
+  const percentage = total === 0 ? 0 : Math.round((done / total) * 100);
+
+
+  return "📊 Habit Hari Ini: " + done + "/" + total + " selesai (" + percentage + "%).";
 }
 
 
