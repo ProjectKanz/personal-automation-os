@@ -238,6 +238,12 @@ return;
       }
 
 
+      if (text === "/lastaudit") {
+        sendText(chatId, buildLastAuditMessage(ss));
+        return;
+      }
+
+
       if (text === "/audit") {
         sendText(chatId, "⏳ Menjalankan Audit... Tunggu sebentar.");
         const auditResult = runWeeklyAIAudit();
@@ -301,8 +307,9 @@ function buildTelegramHelpMessage() {
     "3. `/missing` - Habit yang belum selesai\n" +
     "4. `/status` - Ringkasan progres habit\n" +
     "5. `/audit` - AI Audit mingguan\n" +
-    "6. `/note habit | alasan` - Tambah catatan habit\n" +
-    "7. Ketik nama habit untuk mencentang\n\n" +
+    "6. `/lastaudit` - Preview audit terakhir\n" +
+    "7. `/note habit | alasan` - Tambah catatan habit\n" +
+    "8. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
@@ -460,6 +467,74 @@ function buildHabitNoteUsageMessage() {
     "Gunakan:\n" +
     "`/note habit name | reason`"
   );
+}
+
+
+function buildLastAuditMessage(ss) {
+  const auditSheet = ss.getSheetByName("AI_Audit");
+
+
+  if (!auditSheet) {
+    return "📄 Sheet `AI_Audit` tidak ditemukan.";
+  }
+
+
+  const lastAudit = getLatestSavedAudit(auditSheet);
+
+
+  if (!lastAudit) {
+    return "📄 Belum ada laporan audit valid yang tersimpan di `AI_Audit`.";
+  }
+
+
+  return (
+    "📄 *Audit Terakhir*\n" +
+    "Laporan lengkap tersedia di sheet `AI_Audit` row " + lastAudit.row + ".\n\n" +
+    "*Preview:*\n" +
+    buildAuditPreview(lastAudit.text)
+  );
+}
+
+
+function getLatestSavedAudit(auditSheet) {
+  const data = auditSheet.getDataRange().getValues();
+
+
+  for (let i = data.length - 1; i >= 0; i--) {
+    const auditText = data[i] && data[i][1] ? data[i][1].toString().trim() : "";
+
+
+    if (isValidSavedAuditText(auditText)) {
+      return {
+        row: i + 1,
+        text: auditText
+      };
+    }
+  }
+
+
+  return null;
+}
+
+
+function isValidSavedAuditText(text) {
+  if (!text) return false;
+
+
+  const lowerText = text.toLowerCase();
+  const legacyErrorLabels = [
+    "gemini response error",
+    "gemini format error",
+    "script error"
+  ];
+
+
+  if (legacyErrorLabels.some(label => lowerText === label)) {
+    return false;
+  }
+
+
+  return lowerText.indexOf("weekly ai audit") !== -1;
 }
 
 
