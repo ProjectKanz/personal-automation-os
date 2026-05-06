@@ -232,6 +232,24 @@ return;
       }
 
 
+      if (text === "/daily") {
+        sendText(chatId, buildDailyVisibilityMessage(data, today));
+        return;
+      }
+
+
+      if (text === "/week") {
+        sendText(chatId, buildWeeklyVisibilityMessage(data, today));
+        return;
+      }
+
+
+      if (text === "/reminderstatus") {
+        sendText(chatId, buildReminderStatusMessage());
+        return;
+      }
+
+
       if (text === "/note" || text.indexOf("/note ") === 0) {
         sendText(chatId, handleHabitNoteCommand(dbSheet, data, today, rawText));
         return;
@@ -306,10 +324,13 @@ function buildTelegramHelpMessage() {
     "2. `/today` - Checklist habit hari ini\n" +
     "3. `/missing` - Habit yang belum selesai\n" +
     "4. `/status` - Ringkasan progres habit\n" +
-    "5. `/audit` - AI Audit mingguan\n" +
-    "6. `/lastaudit` - Preview audit terakhir\n" +
-    "7. `/note habit | alasan` - Tambah catatan habit\n" +
-    "8. Ketik nama habit untuk mencentang\n\n" +
+    "5. `/daily` - Ringkasan habit hari ini\n" +
+    "6. `/week` - Ringkasan habit 7 hari\n" +
+    "7. `/reminderstatus` - Status reminder\n" +
+    "8. `/audit` - AI Audit mingguan\n" +
+    "9. `/lastaudit` - Preview audit terakhir\n" +
+    "10. `/note habit | alasan` - Tambah catatan habit\n" +
+    "11. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
@@ -386,6 +407,152 @@ function buildHabitStatusMessage(data, today) {
 
 
   return "📊 Habit Hari Ini: " + done + "/" + total + " selesai (" + percentage + "%).";
+}
+
+
+function buildDailyVisibilityMessage(data, today) {
+  const todayRows = getTodayHabitRows(data, today);
+  const total = todayRows.length;
+  const done = todayRows.filter(row => row[3] === true).length;
+  const percentage = calculateCompletionPercentage(done, total);
+  const missingRows = todayRows.filter(row => row[3] !== true);
+  const notesCount = countRowsWithNotes(todayRows);
+
+
+  if (total === 0) {
+    return "📅 *Daily Summary*\nBelum ada habit untuk hari ini di `Daily_DB`.";
+  }
+
+
+  const missingText = missingRows.length === 0
+    ? "✅ Tidak ada. Semua habit selesai."
+    : missingRows.map(row =>
+      "⬜ " + escapeTelegramMarkdown(row[2] || "(Tanpa nama habit)")
+    ).join("\n");
+
+
+  return (
+    "📅 *Daily Summary*\n" +
+    "Progress: " + done + "/" + total + " selesai (" + percentage + "%)\n" +
+    "Catatan hari ini: " + notesCount + "\n\n" +
+    "*Belum selesai:*\n" +
+    missingText
+  );
+}
+
+
+function buildWeeklyVisibilityMessage(data, today) {
+  const weekRows = getLastSevenDayHabitRows(data, today);
+  const total = weekRows.length;
+  const done = weekRows.filter(row => row[3] === true).length;
+  const percentage = calculateCompletionPercentage(done, total);
+  const notesCount = countRowsWithNotes(weekRows);
+  const topIncomplete = getTopIncompleteHabits(weekRows, 5);
+
+
+  if (total === 0) {
+    return "📆 *Weekly Summary*\nBelum ada habit dalam 7 hari terakhir di `Daily_DB`.";
+  }
+
+
+  const incompleteText = topIncomplete.length === 0
+    ? "✅ Tidak ada. Semua habit dalam periode ini selesai."
+    : topIncomplete.map(item =>
+      "- " + escapeTelegramMarkdown(item.habitName) + ": " + item.count + " belum selesai"
+    ).join("\n");
+
+
+  return (
+    "📆 *Weekly Summary \\(7 Hari\\)*\n" +
+    "Progress: " + done + "/" + total + " selesai (" + percentage + "%)\n" +
+    "Catatan/reason minggu ini: " + notesCount + "\n\n" +
+    "*Top incomplete:*\n" +
+    incompleteText
+  );
+}
+
+
+function getLastSevenDayHabitRows(data, today) {
+  if (!data || data.length <= 1) return [];
+
+
+  const todayDate = new Date(today);
+  const sevenDaysAgo = new Date(todayDate);
+  sevenDaysAgo.setDate(todayDate.getDate() - 6);
+
+
+  return data.slice(1).filter(row => {
+    if (!row || !(row[0] instanceof Date)) return false;
+
+
+    const rowDate = new Date(row[0]);
+    rowDate.setHours(0, 0, 0, 0);
+
+
+    return rowDate.getTime() >= sevenDaysAgo.getTime() &&
+      rowDate.getTime() <= todayDate.getTime();
+  });
+}
+
+
+function calculateCompletionPercentage(done, total) {
+  return total === 0 ? 0 : Math.round((done / total) * 100);
+}
+
+
+function countRowsWithNotes(rows) {
+  return rows.filter(row =>
+    row[4] !== null &&
+    row[4] !== undefined &&
+    row[4].toString().trim() !== ""
+  ).length;
+}
+
+
+function getTopIncompleteHabits(rows, limit) {
+  const counts = {};
+
+
+  rows.forEach(row => {
+    if (row[3] === true) return;
+
+
+    const habitName = row[2] ? row[2].toString() : "(Tanpa nama habit)";
+    counts[habitName] = (counts[habitName] || 0) + 1;
+  });
+
+
+  return Object.keys(counts)
+    .map(habitName => ({
+      habitName: habitName,
+      count: counts[habitName]
+    }))
+    .sort((a, b) => b.count - a.count || a.habitName.localeCompare(b.habitName))
+    .slice(0, limit);
+}
+
+
+function buildReminderStatusMessage() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const reminderTriggers = triggers.filter(trigger => {
+    if (trigger.getHandlerFunction() !== "sendDailyHabitReminder") return false;
+
+
+    if (ScriptApp.EventType && ScriptApp.EventType.CLOCK) {
+      return trigger.getEventType() === ScriptApp.EventType.CLOCK;
+    }
+
+
+    return true;
+  });
+
+
+  if (reminderTriggers.length === 0) {
+    return "⏰ Daily habit reminder: belum aktif.";
+  }
+
+
+  return "⏰ Daily habit reminder: aktif (" + reminderTriggers.length + " trigger ditemukan).";
 }
 
 
