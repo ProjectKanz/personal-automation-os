@@ -33,3 +33,205 @@ function writeSystemLog(module, action, status, message) {
     message
   ]);
 }
+
+
+function applyPortfolioSheetTheme() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+
+  themeSheetIfExists_(ss, "Dashboard", themeDashboardSheet_);
+  themeSheetIfExists_(ss, "Applications", themeApplicationsSheet_);
+  themeSheetIfExists_(ss, "AI_Audit", themeAIAuditSheet_);
+  // Log is intentionally excluded because it has a specialized operational layout.
+}
+
+
+function themeSheetIfExists_(ss, sheetName, themeFn) {
+  const sheet = ss.getSheetByName(sheetName);
+
+
+  if (!sheet) {
+    writeSystemLog(
+      "Spreadsheet UI",
+      "Apply Portfolio Sheet Theme",
+      "Skipped",
+      "Sheet not found: " + sheetName
+    );
+    return;
+  }
+
+
+  themeFn(sheet);
+}
+
+
+function themeDashboardSheet_(sheet) {
+  const lastColumn = Math.max(sheet.getLastColumn(), 1);
+
+
+  if (sheet.getLastRow() >= 1) {
+    sheet.setFrozenRows(1);
+    styleHeaderRow_(sheet, 1, lastColumn);
+  }
+
+
+  styleUsedRange_(sheet);
+  setColumnWidths_(sheet, [
+    120,
+    150,
+    260,
+    110,
+    140,
+    140,
+    260
+  ]);
+
+
+  if (lastColumn >= 1) {
+    sheet.getRange(1, 1, sheet.getMaxRows(), 1).setNumberFormat("dd mmm yyyy");
+  }
+}
+
+
+function themeApplicationsSheet_(sheet) {
+  const lastColumn = Math.max(sheet.getLastColumn(), 1);
+
+
+  if (sheet.getLastRow() >= 1) {
+    sheet.setFrozenRows(1);
+    styleHeaderRow_(sheet, 1, lastColumn);
+  }
+
+
+  styleUsedRange_(sheet);
+  setColumnWidths_(sheet, [
+    180,
+    220,
+    180,
+    120,
+    160,
+    180,
+    180,
+    130,
+    260,
+    260
+  ]);
+
+
+  if (lastColumn >= 4) {
+    sheet.getRange(1, 4, sheet.getMaxRows(), 1).setNumberFormat("dd mmm yyyy");
+  }
+
+
+  if (lastColumn >= 8) {
+    applyStatusConditionalFormatting_(sheet, sheet.getRange(2, 8, Math.max(sheet.getMaxRows() - 1, 1), 1));
+  }
+}
+
+
+function themeAIAuditSheet_(sheet) {
+  const lastColumn = Math.max(sheet.getLastColumn(), 1);
+
+
+  if (sheet.getLastRow() >= 1) {
+    sheet.setFrozenRows(1);
+    styleHeaderRow_(sheet, 1, lastColumn);
+  }
+
+
+  styleUsedRange_(sheet);
+  sheet.setColumnWidth(1, 160);
+
+
+  if (lastColumn >= 2) {
+    sheet.setColumnWidth(2, 720);
+    sheet
+      .getRange(1, 2, sheet.getMaxRows(), 1)
+      .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+      .setVerticalAlignment("top");
+  }
+
+
+  sheet.getRange(1, 1, sheet.getMaxRows(), 1).setNumberFormat("dd mmm yyyy hh:mm");
+}
+
+
+function styleUsedRange_(sheet) {
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+
+
+  if (lastRow < 1 || lastColumn < 1) return;
+
+
+  sheet
+    .getRange(1, 1, lastRow, lastColumn)
+    .setFontFamily("Arial")
+    .setFontSize(10)
+    .setVerticalAlignment("top")
+    .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+    .setBorder(true, true, true, true, true, true, "#d9e2ec", SpreadsheetApp.BorderStyle.SOLID);
+}
+
+
+function styleHeaderRow_(sheet, row, lastColumn) {
+  if (lastColumn < 1) return;
+
+
+  sheet
+    .getRange(row, 1, 1, lastColumn)
+    .setBackground("#1f2937")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle")
+    .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+
+
+  sheet.setRowHeight(row, 34);
+}
+
+
+function setColumnWidths_(sheet, widths) {
+  const maxColumns = sheet.getMaxColumns();
+
+
+  widths.forEach((width, index) => {
+    const column = index + 1;
+
+
+    if (column <= maxColumns) {
+      sheet.setColumnWidth(column, width);
+    }
+  });
+}
+
+
+function applyStatusConditionalFormatting_(sheet, range) {
+  const existingRules = sheet.getConditionalFormatRules();
+  const statusRules = [
+    { text: "Applied", background: "#dbeafe", color: "#1e3a8a" },
+    { text: "Saved", background: "#fef3c7", color: "#92400e" },
+    { text: "Interview", background: "#ede9fe", color: "#5b21b6" },
+    { text: "Rejected", background: "#fee2e2", color: "#991b1b" },
+    { text: "Offer", background: "#dcfce7", color: "#166534" },
+    { text: "OK", background: "#dcfce7", color: "#166534" },
+    { text: "Needs Review", background: "#ffedd5", color: "#9a3412" },
+    { text: "Success", background: "#dcfce7", color: "#166534" },
+    { text: "Error", background: "#fee2e2", color: "#991b1b" }
+  ];
+
+
+  const newRules = statusRules.map(statusRule =>
+    SpreadsheetApp
+      .newConditionalFormatRule()
+      .whenTextEqualTo(statusRule.text)
+      .setBackground(statusRule.background)
+      .setFontColor(statusRule.color)
+      .setRanges([range])
+      .build()
+  );
+
+
+  sheet.setConditionalFormatRules(existingRules.concat(newRules));
+}
