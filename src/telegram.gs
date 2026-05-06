@@ -189,7 +189,8 @@ return;
     // 2. HANDLE TEXT / HABIT BOT
     // =========================
     if (msg.text) {
-      const text = msg.text.toLowerCase().trim();
+      const rawText = msg.text.trim();
+      const text = rawText.toLowerCase();
 
 
       const dbSheet = ss.getSheetByName("Daily_DB");
@@ -227,6 +228,12 @@ return;
 
       if (text === "/status") {
         sendText(chatId, buildHabitStatusMessage(data, today));
+        return;
+      }
+
+
+      if (text === "/note" || text.indexOf("/note ") === 0) {
+        sendText(chatId, handleHabitNoteCommand(dbSheet, data, today, rawText));
         return;
       }
 
@@ -294,7 +301,8 @@ function buildTelegramHelpMessage() {
     "3. `/missing` - Habit yang belum selesai\n" +
     "4. `/status` - Ringkasan progres habit\n" +
     "5. `/audit` - AI Audit mingguan\n" +
-    "6. Ketik nama habit untuk mencentang\n\n" +
+    "6. `/note habit | alasan` - Tambah catatan habit\n" +
+    "7. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
@@ -371,6 +379,87 @@ function buildHabitStatusMessage(data, today) {
 
 
   return "📊 Habit Hari Ini: " + done + "/" + total + " selesai (" + percentage + "%).";
+}
+
+
+function handleHabitNoteCommand(dbSheet, data, today, text) {
+  const notePrefix = "/note";
+  const rawCommand = text.substring(notePrefix.length).trim();
+  const separatorIndex = rawCommand.indexOf("|");
+
+
+  if (rawCommand === "" || separatorIndex === -1) {
+    return buildHabitNoteUsageMessage();
+  }
+
+
+  const habitQuery = rawCommand.substring(0, separatorIndex).trim();
+  const noteText = rawCommand.substring(separatorIndex + 1).trim();
+
+
+  if (habitQuery === "" || noteText === "") {
+    return buildHabitNoteUsageMessage();
+  }
+
+
+  const queryLower = habitQuery.toLowerCase();
+  const matches = [];
+
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i] && data[i][0] instanceof Date && data[i][0].getTime() === today) {
+      const habitName = data[i][2] ? data[i][2].toString() : "";
+
+
+      if (habitName.toLowerCase().includes(queryLower)) {
+        matches.push({
+          rowIndex: i + 1,
+          habitName: habitName
+        });
+      }
+    }
+  }
+
+
+  if (matches.length === 0) {
+    return (
+      "❌ Habit hari ini tidak ditemukan untuk: `" +
+      escapeTelegramMarkdown(habitQuery) +
+      "`.\nCoba cek `/today` atau `/missing`."
+    );
+  }
+
+
+  if (matches.length > 1) {
+    const matchList = matches.map(match =>
+      "- " + escapeTelegramMarkdown(match.habitName || "(Tanpa nama habit)")
+    );
+
+
+    return (
+      "⚠️ Ada beberapa habit yang cocok. Tolong lebih spesifik:\n" +
+      matchList.join("\n")
+    );
+  }
+
+
+  dbSheet.getRange(matches[0].rowIndex, 5).setValue(noteText);
+
+
+  return (
+    "📝 Catatan habit `" +
+    escapeTelegramMarkdown(matches[0].habitName || "(Tanpa nama habit)") +
+    "` diperbarui."
+  );
+}
+
+
+function buildHabitNoteUsageMessage() {
+  return (
+    "Format catatan belum sesuai.\n" +
+    "Gunakan:\n" +
+    "`/note habit name | reason`"
+  );
 }
 
 
