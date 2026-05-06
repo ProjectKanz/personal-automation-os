@@ -4,6 +4,101 @@ All notable changes to this project are documented here.
 
 ---
 
+## V2.9 (May 2026) - Daily Closing Review
+
+### Added
+
+- `/close` Telegram command for end-of-day habit review.
+- Closing review shows daily completion count, total count, and completion percentage.
+- Closing review highlights unfinished habits that still need notes in `Daily_DB` column E.
+- Closing review shows brief existing notes for unfinished habits.
+
+### Notes
+
+- Supports better weekly audit context by encouraging reasons before the day ends.
+- No Google Sheets schema changes.
+- No weekly audit logic changes.
+- No MT5 screenshot parsing changes.
+- No new AI calls introduced.
+
+---
+
+## V2.8 (May 2026) - Spreadsheet UI / Visual Dashboard Layer
+
+### Added
+
+- `applyPortfolioSheetTheme()` utility for applying a clean visual theme to selected spreadsheet interface sheets.
+- Dashboard, Applications, and AI_Audit styling support for portfolio/demo readability.
+
+### Notes
+
+- Operational sheets such as `Log`, `Daily_DB`, `System_Log`, `Master_Habit`, `Helper`, `Lists`, and `Setup` are intentionally excluded.
+- No data, formula, schema, or Telegram command changes.
+- No new AI calls introduced.
+
+---
+
+## V2.7 (May 2026) - Daily and Weekly Visibility Pack
+
+### Added
+
+- `/daily` command for today's habit completion summary, unfinished habits, and note count.
+- `/week` command for last-7-days habit completion summary, top incomplete habits, and weekly note count.
+- `/reminderstatus` command to check whether the daily habit reminder trigger is active.
+
+### Notes
+
+- Commands read from `Daily_DB` and Apps Script trigger metadata only.
+- No AI_Audit reads in `/week`.
+- No new AI calls introduced.
+
+---
+
+## V2.6 (May 2026) - Last Audit Access
+
+### Added
+
+- `/lastaudit` command to retrieve a safe-length preview of the latest saved weekly audit from `AI_Audit`.
+
+### Notes
+
+- Does not call Gemini.
+- Reads only saved audit output from the sheet.
+- Full report remains available in `AI_Audit`.
+
+---
+
+## V2.5 (May 2026) - Habit Note Capture
+
+### Added
+
+- `/note habit name | reason` command for adding or updating today's habit note in `Daily_DB` column E.
+- Partial habit-name matching, with clear no-match and multiple-match responses.
+
+### Notes
+
+- Habit notes improve weekly audit context without changing the sheet schema.
+- No new AI calls introduced.
+
+---
+
+## V2.4 (May 2026) - Daily Habit Reminder System
+
+### Added
+
+- `/missing` command to show today's unfinished habits.
+- `sendDailyHabitReminder()` to send a daily Telegram reminder for unfinished habits.
+- `setupDailyHabitReminderTrigger()` to create a daily time-driven reminder trigger.
+- `deleteDailyHabitReminderTriggers()` to avoid duplicate reminder triggers.
+
+### Notes
+
+- Reminder reads from `Daily_DB` only.
+- No Google Sheets schema changes.
+- No AI calls introduced.
+
+---
+
 ## V2.3 (May 2026) - Weekly Audit UX + Context Upgrade
 
 ### Added

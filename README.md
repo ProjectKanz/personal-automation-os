@@ -1,6 +1,6 @@
 # AI Workflow Automation OS
 
-Personal MVP for daily activity tracking, screenshot-based data extraction, job application monitoring, and AI-generated weekly reporting.
+Personal MVP/prototype for daily activity tracking, screenshot-based data extraction, job application monitoring, and AI-generated weekly reporting.
 
 ## Overview
 
@@ -28,7 +28,9 @@ This project provides one automation layer to:
 - **Daily activity tracking**
   - Generate daily checklist entries from a master habit sheet
   - Sync checklist status between dashboard and database sheets
-  - Update status from Telegram commands
+  - Update status, notes, and daily review context from Telegram commands
+  - Review unfinished habits, missing notes, and daily completion status before closing the day
+  - Send optional daily reminders for unfinished habits
 
 - **Screenshot-to-database extraction module**
   - Accept screenshot-based records from Telegram
@@ -39,12 +41,22 @@ This project provides one automation layer to:
 
 - **Weekly AI audit generation**
   - Aggregate recent habit, trading, and application data
+  - Include habit notes/reasons from `Daily_DB` so skipped or incomplete habits have context
   - Build a structured weekly prompt
   - Generate and store an AI performance audit in a dedicated sheet
+  - Retrieve the latest saved audit from Telegram without calling Gemini again
 
 - **Job application tracking support**
   - Include application volume and status distribution in weekly reporting
   - Surface progress and follow-up context in generated audits
+
+## Workflow Loop
+
+The current MVP supports a practical review loop:
+
+`daily tracking → reminder → note capture → closing review → weekly snapshot → AI audit → audit retrieval`
+
+This keeps the daily habit record useful for the weekly audit without adding a complex product layer.
 
 ## Technology Stack
 
@@ -55,7 +67,7 @@ This project provides one automation layer to:
 - Gemini Vision (image-to-structured-data extraction, tested with MT5 history screenshots)
 - Git (local version control and modular refactor workflow)
 
-## Current Architecture (V2.1)
+## Current Architecture (V2.9)
 
 Apps Script modules are organized by responsibility:
 
@@ -73,6 +85,8 @@ Apps Script modules are organized by responsibility:
 - Weekly AI-generated reporting
 - Modular Apps Script refactor
 - Script Properties security cleanup
+- Telegram command design for daily/weekly visibility
+- Lightweight reminder and review workflow design
 - Git checkpoint workflow
 
 ## MVP Status and Scope
@@ -98,7 +112,7 @@ If a required property is missing, the script now fails with a clear error messa
 ## Repository Documents
 
 - `docs/project-summary.md` - concise portfolio summary
-- `docs/changelog.md` - version history across V1, V2.1-A, V2.1-B, and V2.1-C
+- `docs/changelog.md` - version history across V1 through V2.9
 
 ## License
 

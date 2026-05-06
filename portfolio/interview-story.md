@@ -2,8 +2,8 @@
 
 ## Situation
 
-I had multiple personal workflows running in parallel: daily activity tracking, screenshot-based records, and job application updates.  
-The data lived across chat messages, screenshots, and separate sheets, which made weekly review slow and inconsistent.
+I had multiple personal workflows running in parallel: daily activity tracking, screenshot-based records, weekly reflection, and job application updates.  
+The data lived across chat messages, screenshots, and separate sheets, which made daily follow-through and weekly review slow and inconsistent.
 
 ## Task
 
@@ -11,7 +11,8 @@ My goal was to build a single automation layer that could:
 
 - capture inputs quickly,
 - standardize data into Google Sheets,
-- and generate a weekly AI-assisted report.
+- improve daily completeness before the week ended,
+- and generate a weekly AI-assisted report with better context.
 
 I also wanted the project to be portfolio-ready and explainable in interviews, while staying honest as a personal MVP/prototype.
 
@@ -25,10 +26,14 @@ I also wanted the project to be portfolio-ready and explainable in interviews, w
   - required Script Property helper for key configuration values,
   - defensive Gemini response checks for clearer failure handling.
 - Packaged project-facing documentation in V2.1-C for portfolio and interview clarity.
+- Improved Telegram usability in V2.2 with help, status, and daily checklist commands.
+- Upgraded weekly audit UX in V2.3 so `/audit` returns success/error feedback and a preview, while using habit notes/reasons from `Daily_DB`.
+- Added daily reminder, missing-habit, note capture, closing review, daily snapshot, weekly snapshot, and last-audit access commands across V2.4-V2.9.
+- Added a light spreadsheet visual layer for selected portfolio-facing sheets while avoiding operational sheet schema changes.
 
 ## Result
 
-- I now have a working personal automation MVP that connects input capture, data structuring, and AI-generated weekly reporting in one flow.
+- I now have a working personal automation MVP that connects daily tracking, reminders, note capture, closing review, weekly snapshots, AI audit generation, and saved audit retrieval in one flow.
 - The codebase is cleaner to maintain after modularization and easier to explain to non-technical stakeholders.
 - The project demonstrates practical workflow automation, integration design, and incremental improvement discipline.
 - I do not position it as enterprise-ready software; I position it as a realistic prototype with clear next-step pathways.
@@ -36,5 +41,5 @@ I also wanted the project to be portfolio-ready and explainable in interviews, w
 ## What I Learned
 
 - Fast MVPs benefit from early modular boundaries, even in small Apps Script projects.
-- AI-assisted extraction/reporting is useful when paired with structured logging and clear validation points.
+- AI-assisted extraction/reporting is more useful when paired with structured logging, human notes, and clear validation points.
 - Documentation quality significantly improves portfolio communication and interview outcomes.
