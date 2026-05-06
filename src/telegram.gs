@@ -238,6 +238,12 @@ return;
       }
 
 
+      if (text === "/close") {
+        sendText(chatId, buildDailyClosingReviewMessage(data, today));
+        return;
+      }
+
+
       if (text === "/week") {
         sendText(chatId, buildWeeklyVisibilityMessage(data, today));
         return;
@@ -325,12 +331,13 @@ function buildTelegramHelpMessage() {
     "3. `/missing` - Habit yang belum selesai\n" +
     "4. `/status` - Ringkasan progres habit\n" +
     "5. `/daily` - Ringkasan habit hari ini\n" +
-    "6. `/week` - Ringkasan habit 7 hari\n" +
-    "7. `/reminderstatus` - Status reminder\n" +
-    "8. `/audit` - AI Audit mingguan\n" +
-    "9. `/lastaudit` - Preview audit terakhir\n" +
-    "10. `/note habit | alasan` - Tambah catatan habit\n" +
-    "11. Ketik nama habit untuk mencentang\n\n" +
+    "6. `/close` - Review penutup hari\n" +
+    "7. `/week` - Ringkasan habit 7 hari\n" +
+    "8. `/reminderstatus` - Status reminder\n" +
+    "9. `/audit` - AI Audit mingguan\n" +
+    "10. `/lastaudit` - Preview audit terakhir\n" +
+    "11. `/note habit | alasan` - Tambah catatan habit\n" +
+    "12. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
@@ -441,6 +448,75 @@ function buildDailyVisibilityMessage(data, today) {
 }
 
 
+function buildDailyClosingReviewMessage(data, today) {
+  const todayRows = getTodayHabitRows(data, today);
+  const total = todayRows.length;
+  const done = todayRows.filter(row => row[3] === true).length;
+  const percentage = calculateCompletionPercentage(done, total);
+  const unfinishedRows = todayRows.filter(row => row[3] !== true);
+
+
+  if (total === 0) {
+    return "🌙 *Closing Review*\nBelum ada habit untuk hari ini di `Daily_DB`.";
+  }
+
+
+  if (unfinishedRows.length === 0) {
+    return (
+      "🌙 *Closing Review*\n" +
+      "Progress: " + done + "/" + total + " selesai (" + percentage + "%)\n\n" +
+      "✅ Semua habit hari ini sudah selesai. Hari ini bisa ditutup dengan rapi."
+    );
+  }
+
+
+  const unfinishedWithNotes = [];
+  const unfinishedWithoutNotes = [];
+
+
+  unfinishedRows.forEach(row => {
+    const habitName = row[2] ? row[2].toString() : "(Tanpa nama habit)";
+    const note = row[4] ? row[4].toString().trim() : "";
+
+
+    if (note === "") {
+      unfinishedWithoutNotes.push(habitName);
+    } else {
+      unfinishedWithNotes.push({
+        habitName: habitName,
+        note: note
+      });
+    }
+  });
+
+
+  const missingNoteText = unfinishedWithoutNotes.length === 0
+    ? "✅ Semua habit yang belum selesai sudah punya catatan."
+    : unfinishedWithoutNotes.map(habitName =>
+      "⚠️ " + escapeTelegramMarkdown(habitName)
+    ).join("\n");
+
+
+  const notedText = unfinishedWithNotes.length === 0
+    ? "Belum ada catatan untuk habit yang belum selesai."
+    : unfinishedWithNotes.map(item =>
+      "📝 " + escapeTelegramMarkdown(item.habitName) + ": " + buildShortNotePreview(item.note)
+    ).join("\n");
+
+
+  return (
+    "🌙 *Closing Review*\n" +
+    "Progress: " + done + "/" + total + " selesai (" + percentage + "%)\n\n" +
+    "*Belum selesai tanpa catatan:*\n" +
+    missingNoteText +
+    "\n\n*Catatan yang sudah ada:*\n" +
+    notedText +
+    "\n\nTambah catatan dengan:\n" +
+    "`/note habit name | reason`"
+  );
+}
+
+
 function buildWeeklyVisibilityMessage(data, today) {
   const weekRows = getLastSevenDayHabitRows(data, today);
   const total = weekRows.length;
@@ -529,6 +605,20 @@ function getTopIncompleteHabits(rows, limit) {
     }))
     .sort((a, b) => b.count - a.count || a.habitName.localeCompare(b.habitName))
     .slice(0, limit);
+}
+
+
+function buildShortNotePreview(note) {
+  const maxLength = 140;
+  const cleanNote = note ? note.toString().trim() : "";
+
+
+  if (cleanNote.length <= maxLength) {
+    return escapeTelegramMarkdown(cleanNote);
+  }
+
+
+  return escapeTelegramMarkdown(cleanNote.substring(0, maxLength).trim()) + "...";
 }
 
 
