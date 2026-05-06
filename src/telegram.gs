@@ -219,6 +219,12 @@ return;
       }
 
 
+      if (text === "/missing") {
+        sendText(chatId, buildMissingHabitsMessage(data, today));
+        return;
+      }
+
+
       if (text === "/status") {
         sendText(chatId, buildHabitStatusMessage(data, today));
         return;
@@ -285,9 +291,10 @@ function buildTelegramHelpMessage() {
     "🤖 *Menu Kanzan*:\n" +
     "1. Kirim Foto (MT5 Log)\n" +
     "2. `/today` - Checklist habit hari ini\n" +
-    "3. `/status` - Ringkasan progres habit\n" +
-    "4. `/audit` - AI Audit mingguan\n" +
-    "5. Ketik nama habit untuk mencentang\n\n" +
+    "3. `/missing` - Habit yang belum selesai\n" +
+    "4. `/status` - Ringkasan progres habit\n" +
+    "5. `/audit` - AI Audit mingguan\n" +
+    "6. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
@@ -308,7 +315,7 @@ function buildTodayHabitChecklist(data, today) {
 
 
   if (todayRows.length === 0) {
-    return "📋 Belum ada habit untuk hari ini di Daily_DB.";
+    return "📋 Belum ada habit untuk hari ini di `Daily_DB`.";
   }
 
 
@@ -320,6 +327,30 @@ function buildTodayHabitChecklist(data, today) {
 
 
   return "📋 *Habit Hari Ini:*\n" + checklist.join("\n");
+}
+
+
+function buildMissingHabitsMessage(data, today) {
+  const todayRows = getTodayHabitRows(data, today);
+  const missingRows = todayRows.filter(row => row[3] !== true);
+
+
+  if (todayRows.length === 0) {
+    return "📋 Belum ada habit untuk hari ini di `Daily_DB`.";
+  }
+
+
+  if (missingRows.length === 0) {
+    return "✅ Semua habit hari ini sudah selesai. Mantap.";
+  }
+
+
+  const missingList = missingRows.map(row =>
+    "⬜ " + escapeTelegramMarkdown(row[2] || "(Tanpa nama habit)")
+  );
+
+
+  return "⏳ *Habit Belum Selesai Hari Ini:*\n" + missingList.join("\n");
 }
 
 

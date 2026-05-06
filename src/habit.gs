@@ -115,3 +115,85 @@ function logDailyToDB() {
 
   SpreadsheetApp.getUi().alert("Sinkronisasi Selesai! Data tanggal " + targetDateString + " sudah masuk ke Daily_DB.");
 }
+
+
+function sendDailyHabitReminder() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dbSheet = ss.getSheetByName("Daily_DB");
+
+
+  if (!dbSheet) {
+    writeSystemLog(
+      "Habit Reminder",
+      "Send Daily Habit Reminder",
+      "Error",
+      "Sheet Daily_DB tidak ditemukan."
+    );
+    sendText(MY_ID, "⚠️ Reminder habit gagal: sheet `Daily_DB` tidak ditemukan.");
+    return;
+  }
+
+
+  const data = dbSheet.getDataRange().getValues();
+  const today = new Date().setHours(0, 0, 0, 0);
+  const message = buildDailyHabitReminderMessage(data, today);
+
+
+  sendText(MY_ID, message);
+}
+
+
+function buildDailyHabitReminderMessage(data, today) {
+  const todayRows = getTodayHabitRows(data, today);
+  const total = todayRows.length;
+  const done = todayRows.filter(row => row[3] === true).length;
+  const missingRows = todayRows.filter(row => row[3] !== true);
+
+
+  if (total === 0) {
+    return "📋 Reminder habit: belum ada habit untuk hari ini di `Daily_DB`.";
+  }
+
+
+  if (missingRows.length === 0) {
+    return "✅ Reminder habit: semua habit hari ini sudah selesai (" + done + "/" + total + "). Mantap.";
+  }
+
+
+  const missingList = missingRows.map(row =>
+    "⬜ " + escapeTelegramMarkdown(row[2] || "(Tanpa nama habit)")
+  );
+
+
+  return (
+    "⏰ *Reminder Habit Harian*\n" +
+    "Progress: " + done + "/" + total + " selesai.\n\n" +
+    "*Belum selesai:*\n" +
+    missingList.join("\n")
+  );
+}
+
+
+function setupDailyHabitReminderTrigger() {
+  deleteDailyHabitReminderTriggers();
+
+
+  ScriptApp
+    .newTrigger("sendDailyHabitReminder")
+    .timeBased()
+    .everyDays(1)
+    .atHour(21)
+    .create();
+}
+
+
+function deleteDailyHabitReminderTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+
+
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === "sendDailyHabitReminder") {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+}
