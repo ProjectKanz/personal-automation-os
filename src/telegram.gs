@@ -869,6 +869,83 @@ function escapeTelegramMarkdown(text) {
 
 
 function sendText(id, text) {
-  const url = "https://api.telegram.org/bot" + TOKEN + "/sendMessage?chat_id=" + id + "&text=" + encodeURIComponent(text) + "&parse_mode=Markdown";
-  UrlFetchApp.fetch(url);
+  const url = "https://api.telegram.org/bot" + TOKEN + "/sendMessage";
+  const chunks = splitTelegramMessage_(text);
+
+  chunks.forEach(chunk => {
+    sendTelegramMessageChunk_(url, id, chunk, true);
+  });
+}
+
+function sendTelegramMessageChunk_(url, id, text, useMarkdown) {
+  const payload = {
+    chat_id: id,
+    text: text
+  };
+
+  if (useMarkdown) {
+    payload.parse_mode = "Markdown";
+  }
+
+  const response = UrlFetchApp.fetch(url, {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const responseCode = response.getResponseCode();
+
+  if (responseCode >= 200 && responseCode < 300) {
+    return;
+  }
+
+  const responseText = response.getContentText();
+
+  if (useMarkdown) {
+    console.warn("Telegram Markdown send failed. Retrying as plain text: " + responseText);
+    sendTelegramMessageChunk_(url, id, stripTelegramMarkdown_(text), false);
+    return;
+  }
+
+  console.warn("Telegram send failed: " + responseText);
+}
+
+function splitTelegramMessage_(text) {
+  const maxLength = 3800;
+  const message = text ? text.toString() : "";
+
+  if (message.length <= maxLength) {
+    return [message];
+  }
+
+  const chunks = [];
+  let remainingText = message;
+
+  while (remainingText.length > maxLength) {
+    let splitIndex = remainingText.lastIndexOf("\n\n", maxLength);
+
+    if (splitIndex < 1) {
+      splitIndex = remainingText.lastIndexOf("\n", maxLength);
+    }
+
+    if (splitIndex < 1) {
+      splitIndex = maxLength;
+    }
+
+    chunks.push(remainingText.substring(0, splitIndex).trim());
+    remainingText = remainingText.substring(splitIndex).trim();
+  }
+
+  if (remainingText.length > 0) {
+    chunks.push(remainingText);
+  }
+
+  return chunks;
+}
+
+function stripTelegramMarkdown_(text) {
+  return text
+    .toString()
+    .replace(/\\([_*\[`])/g, "$1")
+    .replace(/[*`]/g, "");
 }

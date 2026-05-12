@@ -162,7 +162,9 @@ function themeApplicationsSheet_(sheet) {
     180,
     180,
     130,
+    130,
     260,
+    140,
     260
   ]);
 
@@ -172,8 +174,8 @@ function themeApplicationsSheet_(sheet) {
   }
 
 
-  if (lastColumn >= 8) {
-    applyStatusConditionalFormatting_(sheet, sheet.getRange(2, 8, Math.max(lastRow - 1, 1), 1));
+  if (lastColumn >= 5) {
+    applyStatusConditionalFormatting_(sheet, sheet.getRange(2, 5, Math.max(lastRow - 1, 1), 1));
   }
 }
 

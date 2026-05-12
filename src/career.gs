@@ -10,6 +10,8 @@ const APPLICATIONS_V3_HEADERS = [
   "Target Date",
   "FU Required?",
   "Follow Up Date",
+  "Link Job posting",
+  "CV VERSION",
   "Notes"
 ];
 
@@ -24,6 +26,17 @@ const APPLICATIONS_STATUS_OPTIONS = [
 ];
 
 const APPLICATIONS_FU_OPTIONS = ["Yes", "No"];
+const APPLICATIONS_COL = {
+  COMPANY_NAME: 0,
+  JOB_TITLE: 1,
+  DATE_APPLIED: 3,
+  STATUS: 4,
+  FU_REQUIRED: 7,
+  FOLLOW_UP_DATE: 8,
+  LINK_JOB_POSTING: 9,
+  CV_VERSION: 10,
+  NOTES: 11
+};
 
 function standardizeApplicationsSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -61,7 +74,7 @@ function standardizeApplicationsSheet() {
 
 function getFollowUpList() {
   const followUpItems = getCareerFollowUpItems_();
-  const today = normalizeApplicationDate_(new Date());
+  const today = getTodayWibDate_();
 
   if (followUpItems.length === 0) {
     return "✅ All clear! No applications require follow-up today.";
@@ -126,13 +139,15 @@ function addApplicationFromTelegram(inputString) {
 
   const nextRow = findNextApplicationsRow_(sheet);
   ensureApplicationsRowCapacity_(sheet, nextRow);
-  const today = normalizeApplicationDate_(new Date());
+  const today = getTodayWibDate_();
   const rowValues = [
     parsedInput.company,
     parsedInput.role,
     "",
     today,
     parsedInput.status,
+    "",
+    "",
     "",
     "",
     "",
@@ -148,6 +163,9 @@ function addApplicationFromTelegram(inputString) {
   applyNumberFormatToUsedRows_(sheet, 5, "@");
   applyNumberFormatToUsedRows_(sheet, 7, "dd mmm yyyy");
   applyNumberFormatToUsedRows_(sheet, 9, "dd mmm yyyy");
+  applyNumberFormatToUsedRows_(sheet, 10, "@");
+  applyNumberFormatToUsedRows_(sheet, 11, "@");
+  applyNumberFormatToUsedRows_(sheet, 12, "@");
   writeSystemLog(
     "Career",
     "Telegram Add Application",
@@ -238,6 +256,8 @@ function migrateApplicationsRowsToV3_(values) {
       getApplicationValue_(row, headerMap, ["Target Date"]),
       getApplicationValue_(row, headerMap, ["FU Required?", "FU"]),
       getApplicationValue_(row, headerMap, ["Follow Up Date", "Date FU"]),
+      getApplicationValue_(row, headerMap, ["Link Job posting", "Link"]),
+      getApplicationValue_(row, headerMap, ["CV VERSION", "CV", "CV Version"]),
       buildApplicationsNotes_(row, headerMap)
     ]);
 }
@@ -266,18 +286,32 @@ function getApplicationValue_(row, headerMap, candidateHeaders) {
   return "";
 }
 
+function getApplicationField_(row, headerMap, candidateHeaders, fallbackIndex) {
+  const headerValue = getApplicationValue_(row, headerMap, candidateHeaders);
+
+  if (headerValue !== "" && headerValue !== null && headerValue !== undefined) {
+    return headerValue;
+  }
+
+  if (fallbackIndex !== undefined && fallbackIndex < row.length) {
+    return row[fallbackIndex];
+  }
+
+  return "";
+}
+
 function buildApplicationsNotes_(row, headerMap) {
   const noteParts = [];
-  const legacyFields = ["Location", "Link", "Review"];
+  const legacyFields = ["Location", "Review"];
   const hasLegacyNoteSources = legacyFields.some(
     fieldName => headerMap[normalizeApplicationsHeader_(fieldName)] !== undefined
   );
 
   if (!hasLegacyNoteSources) {
-    return getApplicationValue_(row, headerMap, ["Notes"]);
+    return getApplicationField_(row, headerMap, ["Notes"], APPLICATIONS_COL.NOTES);
   }
 
-  const fieldsToCombine = ["Location", "Link", "Notes", "Review"];
+  const fieldsToCombine = ["Location", "Notes", "Review"];
 
   fieldsToCombine.forEach(fieldName => {
     const value = getApplicationValue_(row, headerMap, [fieldName]);
@@ -302,9 +336,13 @@ function cleanupApplicationsFormatting_(sheet) {
   sheet
     .getRange(1, 1, rowCount, APPLICATIONS_V3_HEADERS.length)
     .clearDataValidations();
+  applyNumberFormatToUsedRows_(sheet, 4, "dd mmm yyyy");
   applyNumberFormatToUsedRows_(sheet, 5, "@");
   applyNumberFormatToUsedRows_(sheet, 7, "dd mmm yyyy");
   applyNumberFormatToUsedRows_(sheet, 9, "dd mmm yyyy");
+  applyNumberFormatToUsedRows_(sheet, 10, "@");
+  applyNumberFormatToUsedRows_(sheet, 11, "@");
+  applyNumberFormatToUsedRows_(sheet, 12, "@");
 }
 
 function applyApplicationsDataValidation_(sheet) {
@@ -438,10 +476,10 @@ function normalizeApplicationsHeader_(header) {
 
 function buildApplicationFollowUpItem_(row, headerMap, today) {
   const status = String(
-    getApplicationValue_(row, headerMap, ["Status"]) || ""
+    getApplicationField_(row, headerMap, ["Status"], APPLICATIONS_COL.STATUS) || ""
   ).trim().toLowerCase();
   const fuRequired = String(
-    getApplicationValue_(row, headerMap, ["FU Required?", "FU"]) || ""
+    getApplicationField_(row, headerMap, ["FU Required?", "FU"], APPLICATIONS_COL.FU_REQUIRED) || ""
   ).trim().toLowerCase();
   const closedStatuses = ["rejected", "withdrawn", "offer"];
 
@@ -454,10 +492,10 @@ function buildApplicationFollowUpItem_(row, headerMap, today) {
   }
 
   const dateApplied = parseApplicationDate_(
-    getApplicationValue_(row, headerMap, ["Date Applied", "Date"])
+    getApplicationField_(row, headerMap, ["Date Applied", "Date"], APPLICATIONS_COL.DATE_APPLIED)
   );
   const followUpDate = parseApplicationDate_(
-    getApplicationValue_(row, headerMap, ["Follow Up Date", "Date FU"])
+    getApplicationField_(row, headerMap, ["Follow Up Date", "Date FU"], APPLICATIONS_COL.FOLLOW_UP_DATE)
   );
   const followUpDue = followUpDate && followUpDate.getTime() <= today.getTime();
   const daysSinceApplied = dateApplied
@@ -472,28 +510,30 @@ function buildApplicationFollowUpItem_(row, headerMap, today) {
   }
 
   return {
-    companyName: getApplicationValue_(row, headerMap, ["Company Name", "Company"]) || "-",
-    jobTitle: getApplicationValue_(row, headerMap, ["Job Title", "Position"]) || "-",
+    companyName: getApplicationField_(row, headerMap, ["Company Name", "Company"], APPLICATIONS_COL.COMPANY_NAME) || "-",
+    jobTitle: getApplicationField_(row, headerMap, ["Job Title", "Position"], APPLICATIONS_COL.JOB_TITLE) || "-",
+    jobLink: getApplicationField_(row, headerMap, ["Link Job posting", "Link"], APPLICATIONS_COL.LINK_JOB_POSTING) || "",
     daysSinceApplied: daysSinceApplied,
-    notes: getApplicationValue_(row, headerMap, ["Notes"]) || "No notes provided."
+    notes: getApplicationField_(row, headerMap, ["Notes"], APPLICATIONS_COL.NOTES) || "No notes provided."
   };
 }
 
 function buildApplicationDataItem_(row, headerMap, today) {
   const dateApplied = parseApplicationDate_(
-    getApplicationValue_(row, headerMap, ["Date Applied", "Date"])
+    getApplicationField_(row, headerMap, ["Date Applied", "Date"], APPLICATIONS_COL.DATE_APPLIED)
   );
   const daysSinceApplied = dateApplied
     ? Math.floor((today.getTime() - dateApplied.getTime()) / 86400000)
     : null;
 
   return {
-    companyName: getApplicationValue_(row, headerMap, ["Company Name", "Company"]) || "-",
-    jobTitle: getApplicationValue_(row, headerMap, ["Job Title", "Position"]) || "-",
-    status: String(getApplicationValue_(row, headerMap, ["Status"]) || "").trim().toLowerCase(),
+    companyName: getApplicationField_(row, headerMap, ["Company Name", "Company"], APPLICATIONS_COL.COMPANY_NAME) || "-",
+    jobTitle: getApplicationField_(row, headerMap, ["Job Title", "Position"], APPLICATIONS_COL.JOB_TITLE) || "-",
+    status: String(getApplicationField_(row, headerMap, ["Status"], APPLICATIONS_COL.STATUS) || "").trim().toLowerCase(),
     dateApplied: dateApplied,
     daysSinceApplied: daysSinceApplied,
-    notes: getApplicationValue_(row, headerMap, ["Notes"]) || ""
+    jobLink: getApplicationField_(row, headerMap, ["Link Job posting", "Link"], APPLICATIONS_COL.LINK_JOB_POSTING) || "",
+    notes: getApplicationField_(row, headerMap, ["Notes"], APPLICATIONS_COL.NOTES) || ""
   };
 }
 
@@ -501,11 +541,15 @@ function formatApplicationFollowUpMemo_(item, index) {
   const daysSinceApplied = item.daysSinceApplied === null
     ? "Unknown"
     : item.daysSinceApplied + " days";
+  const jobLinkLine = item.jobLink
+    ? "*🔗 Job Link:* " + escapeTelegramMarkdown(item.jobLink) + "\n"
+    : "";
 
   return (
     "*Memo " + (index + 1) + "*\n" +
     "*Company Name:* " + escapeTelegramMarkdown(item.companyName) + "\n" +
     "*Job Title:* " + escapeTelegramMarkdown(item.jobTitle) + "\n" +
+    jobLinkLine +
     "*Days since Applied:* " + escapeTelegramMarkdown(daysSinceApplied) + "\n" +
     "*Context:* " + escapeTelegramMarkdown(item.notes)
   );
@@ -533,6 +577,12 @@ function normalizeApplicationDate_(date) {
   const normalizedDate = new Date(date);
   normalizedDate.setHours(0, 0, 0, 0);
   return normalizedDate;
+}
+
+function getTodayWibDate_() {
+  return normalizeApplicationDate_(
+    new Date(Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy/MM/dd"))
+  );
 }
 
 function formatApplicationDate_(date) {
