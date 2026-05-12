@@ -211,6 +211,12 @@ return;
       }
 
 
+      if (text === "/careeradd" || text.indexOf("/careeradd ") === 0) {
+        sendText(chatId, addApplicationFromTelegram(rawText.substring("/careeradd".length).trim()));
+        return;
+      }
+
+
       const dbSheet = ss.getSheetByName("Daily_DB");
 
 
@@ -348,8 +354,9 @@ function buildTelegramHelpMessage() {
     "10. `/lastaudit` - Preview audit terakhir\n" +
     "11. `/followup` - Memo follow-up lamaran kerja\n" +
     "12. `/career` - Executive career dashboard\n" +
-    "13. `/note habit | alasan` - Tambah catatan habit\n" +
-    "14. Ketik nama habit untuk mencentang\n\n" +
+    "13. `/careeradd Company | Role | Status | Notes` - Tambah lamaran\n" +
+    "14. `/note habit | alasan` - Tambah catatan habit\n" +
+    "15. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }

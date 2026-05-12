@@ -272,6 +272,58 @@ function buildCareerDashboardMessage() {
   );
 }
 
+function addApplicationFromTelegram(inputString) {
+  const parsedInput = parseCareerAddInput_(inputString);
+
+  if (!parsedInput.isValid) {
+    return buildCareerAddUsageMessage_(parsedInput.error);
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+
+  if (!sheet) {
+    standardizeApplicationsSheet();
+    sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+  }
+
+  ensureApplicationsMinimumRows_(sheet);
+  ensureApplicationsHeaders_(sheet);
+
+  const nextRow = findNextApplicationsRow_(sheet);
+  ensureApplicationsRowCapacity_(sheet, nextRow);
+  const today = normalizeApplicationDate_(new Date());
+  const rowValues = [
+    parsedInput.company,
+    parsedInput.role,
+    "",
+    today,
+    parsedInput.status,
+    "",
+    "",
+    "",
+    "",
+    parsedInput.notes
+  ];
+
+  sheet
+    .getRange(nextRow, 1, 1, APPLICATIONS_V3_HEADERS.length)
+    .setValues([rowValues]);
+  applyApplicationsDataValidation_(sheet);
+  applyNumberFormatToUsedRows_(sheet, 4, "dd mmm yyyy");
+  applyNumberFormatToUsedRows_(sheet, 5, "@");
+  applyNumberFormatToUsedRows_(sheet, 7, "dd mmm yyyy");
+  applyNumberFormatToUsedRows_(sheet, 9, "dd mmm yyyy");
+  writeSystemLog(
+    "Career",
+    "Telegram Add Application",
+    "Success",
+    "Added application from Telegram: " + parsedInput.company + " - " + parsedInput.role
+  );
+
+  return "✅ Successfully added " + escapeTelegramMarkdown(parsedInput.company) + " to your Career Pipeline!";
+}
+
 function getCareerFollowUpCount() {
   return getCareerFollowUpItems_().length;
 }
@@ -440,6 +492,110 @@ function applyApplicationsDataValidation_(sheet) {
   sheet
     .getRange(2, 8, validationRowCount, 1)
     .setDataValidation(fuRule);
+}
+
+function ensureApplicationsHeaders_(sheet) {
+  const existingHeaders = sheet
+    .getRange(1, 1, 1, APPLICATIONS_V3_HEADERS.length)
+    .getValues()[0];
+  const headersAreValid = APPLICATIONS_V3_HEADERS.every((header, index) =>
+    existingHeaders[index] === header
+  );
+
+  if (!headersAreValid) {
+    sheet
+      .getRange(1, 1, 1, APPLICATIONS_V3_HEADERS.length)
+      .setValues([APPLICATIONS_V3_HEADERS]);
+  }
+}
+
+function findNextApplicationsRow_(sheet) {
+  const lastRow = Math.max(sheet.getLastRow(), 1);
+
+  if (lastRow < 2) {
+    return 2;
+  }
+
+  const rowValues = sheet
+    .getRange(2, 1, lastRow - 1, APPLICATIONS_V3_HEADERS.length)
+    .getValues();
+
+  for (let i = 0; i < rowValues.length; i++) {
+    if (rowValues[i].every(value => value === "" || value === null)) {
+      return i + 2;
+    }
+  }
+
+  return lastRow + 1;
+}
+
+function ensureApplicationsRowCapacity_(sheet, targetRow) {
+  const maxRows = sheet.getMaxRows();
+
+  if (targetRow > maxRows) {
+    sheet.insertRowsAfter(maxRows, targetRow - maxRows);
+  }
+}
+
+function parseCareerAddInput_(inputString) {
+  const parts = String(inputString || "")
+    .split("|")
+    .map(part => part.trim());
+
+  if (parts.length < 4) {
+    return {
+      isValid: false,
+      error: "Format must be: Company | Role | Status | Notes"
+    };
+  }
+
+  const company = parts[0];
+  const role = parts[1];
+  const status = normalizeCareerStatus_(parts[2]);
+  const notes = parts.slice(3).join(" | ").trim();
+
+  if (!company || !role || !parts[2].trim() || !notes) {
+    return {
+      isValid: false,
+      error: "Company, Role, Status, and Notes are all required."
+    };
+  }
+
+  if (!status) {
+    return {
+      isValid: false,
+      error: "Status must be one of: " + APPLICATIONS_STATUS_OPTIONS.join(", ")
+    };
+  }
+
+  return {
+    isValid: true,
+    company: company,
+    role: role,
+    status: status,
+    notes: notes
+  };
+}
+
+function normalizeCareerStatus_(status) {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+
+  for (let i = 0; i < APPLICATIONS_STATUS_OPTIONS.length; i++) {
+    if (APPLICATIONS_STATUS_OPTIONS[i].toLowerCase() === normalizedStatus) {
+      return APPLICATIONS_STATUS_OPTIONS[i];
+    }
+  }
+
+  return "";
+}
+
+function buildCareerAddUsageMessage_(error) {
+  return (
+    "⚠️ Unable to add application.\n" +
+    escapeTelegramMarkdown(error) + "\n\n" +
+    "Usage:\n" +
+    "`/careeradd Google | Product Manager | Applied | Referral from John`"
+  );
 }
 
 function normalizeApplicationsHeader_(header) {
@@ -1000,6 +1156,12 @@ return;
       }
 
 
+      if (text === "/careeradd" || text.indexOf("/careeradd ") === 0) {
+        sendText(chatId, addApplicationFromTelegram(rawText.substring("/careeradd".length).trim()));
+        return;
+      }
+
+
       const dbSheet = ss.getSheetByName("Daily_DB");
 
 
@@ -1137,8 +1299,9 @@ function buildTelegramHelpMessage() {
     "10. `/lastaudit` - Preview audit terakhir\n" +
     "11. `/followup` - Memo follow-up lamaran kerja\n" +
     "12. `/career` - Executive career dashboard\n" +
-    "13. `/note habit | alasan` - Tambah catatan habit\n" +
-    "14. Ketik nama habit untuk mencentang\n\n" +
+    "13. `/careeradd Company | Role | Status | Notes` - Tambah lamaran\n" +
+    "14. `/note habit | alasan` - Tambah catatan habit\n" +
+    "15. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
