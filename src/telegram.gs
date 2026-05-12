@@ -205,6 +205,12 @@ return;
       }
 
 
+      if (text === "/career") {
+        sendText(chatId, buildCareerDashboardMessage());
+        return;
+      }
+
+
       const dbSheet = ss.getSheetByName("Daily_DB");
 
 
@@ -341,8 +347,9 @@ function buildTelegramHelpMessage() {
     "9. `/audit` - AI Audit mingguan\n" +
     "10. `/lastaudit` - Preview audit terakhir\n" +
     "11. `/followup` - Memo follow-up lamaran kerja\n" +
-    "12. `/note habit | alasan` - Tambah catatan habit\n" +
-    "13. Ketik nama habit untuk mencentang\n\n" +
+    "12. `/career` - Executive career dashboard\n" +
+    "13. `/note habit | alasan` - Tambah catatan habit\n" +
+    "14. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }

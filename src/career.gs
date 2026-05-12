@@ -60,21 +60,8 @@ function standardizeApplicationsSheet() {
 }
 
 function getFollowUpList() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
-
-  if (!sheet || sheet.getLastRow() < 2) {
-    return "✅ All clear! No applications require follow-up today.";
-  }
-
-  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
-  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const followUpItems = getCareerFollowUpItems_();
   const today = normalizeApplicationDate_(new Date());
-  const followUpItems = values
-    .slice(1)
-    .filter(row => row.some(value => value !== "" && value !== null))
-    .map(row => buildApplicationFollowUpItem_(row, headerMap, today))
-    .filter(item => item !== null);
 
   if (followUpItems.length === 0) {
     return "✅ All clear! No applications require follow-up today.";
@@ -86,6 +73,86 @@ function getFollowUpList() {
     "Pending items: " + followUpItems.length + "\n\n" +
     followUpItems.map(formatApplicationFollowUpMemo_).join("\n\n")
   );
+}
+
+function getCareerDashboardStats() {
+  const rows = getApplicationDataRows_();
+  const totalApplications = rows.length;
+  const offerCount = rows.filter(item => item.status === "offer").length;
+  const rejectedCount = rows.filter(item => item.status === "rejected").length;
+  const interviewPipeline = rows.filter(item => item.status === "interview").length;
+
+  return {
+    totalApplications: totalApplications,
+    offerCount: offerCount,
+    rejectedCount: rejectedCount,
+    interviewPipeline: interviewPipeline,
+    followUpsDue: getCareerFollowUpItems_().length,
+    successRate: calculateApplicationRate_(offerCount, totalApplications),
+    rejectionRate: calculateApplicationRate_(rejectedCount, totalApplications)
+  };
+}
+
+function buildCareerDashboardMessage() {
+  const stats = getCareerDashboardStats();
+
+  return (
+    "📊 *Executive Career Dashboard*\n" +
+    "Total Applications: " + stats.totalApplications + "\n" +
+    "Success Rate: " + stats.successRate + "% (" + stats.offerCount + " offer)\n" +
+    "Rejection Rate: " + stats.rejectionRate + "% (" + stats.rejectedCount + " rejected)\n" +
+    "Interview Pipeline: " + stats.interviewPipeline + "\n" +
+    "Follow-Ups Due: " + stats.followUpsDue
+  );
+}
+
+function getCareerFollowUpCount() {
+  return getCareerFollowUpItems_().length;
+}
+
+function getOldestAppliedApplications(limit) {
+  return getApplicationDataRows_()
+    .filter(item => item.status === "applied" && item.daysSinceApplied !== null)
+    .sort((a, b) => b.daysSinceApplied - a.daysSinceApplied)
+    .slice(0, limit || 3);
+}
+
+function getApplicationDataRows_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const today = normalizeApplicationDate_(new Date());
+
+  return values
+    .slice(1)
+    .filter(row => row.some(value => value !== "" && value !== null))
+    .map(row => buildApplicationDataItem_(row, headerMap, today));
+}
+
+function getCareerFollowUpItems_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const today = normalizeApplicationDate_(new Date());
+  const followUpItems = values
+    .slice(1)
+    .filter(row => row.some(value => value !== "" && value !== null))
+    .map(row => buildApplicationFollowUpItem_(row, headerMap, today))
+    .filter(item => item !== null);
+
+  return followUpItems;
 }
 
 function getApplicationsExistingValues_(sheet) {
@@ -256,6 +323,24 @@ function buildApplicationFollowUpItem_(row, headerMap, today) {
   };
 }
 
+function buildApplicationDataItem_(row, headerMap, today) {
+  const dateApplied = parseApplicationDate_(
+    getApplicationValue_(row, headerMap, ["Date Applied", "Date"])
+  );
+  const daysSinceApplied = dateApplied
+    ? Math.floor((today.getTime() - dateApplied.getTime()) / 86400000)
+    : null;
+
+  return {
+    companyName: getApplicationValue_(row, headerMap, ["Company Name", "Company"]) || "-",
+    jobTitle: getApplicationValue_(row, headerMap, ["Job Title", "Position"]) || "-",
+    status: String(getApplicationValue_(row, headerMap, ["Status"]) || "").trim().toLowerCase(),
+    dateApplied: dateApplied,
+    daysSinceApplied: daysSinceApplied,
+    notes: getApplicationValue_(row, headerMap, ["Notes"]) || ""
+  };
+}
+
 function formatApplicationFollowUpMemo_(item, index) {
   const daysSinceApplied = item.daysSinceApplied === null
     ? "Unknown"
@@ -300,4 +385,10 @@ function formatApplicationDate_(date) {
     Session.getScriptTimeZone(),
     "dd MMM yyyy"
   );
+}
+
+function calculateApplicationRate_(count, total) {
+  if (!total) return "0.0";
+
+  return ((count / total) * 100).toFixed(1);
 }

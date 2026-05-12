@@ -7,6 +7,7 @@ Generated from the `src` folder. Each section preserves the original file path.
 ```text
 src/
   appsscript.json
+  brief.gs
   career.gs
   habit.gs
   main.gs
@@ -25,6 +26,139 @@ src/
     "runtimeVersion": "V8"
   }
   
+```
+
+## src/brief.gs
+
+```javascript
+// Daily operator brief for V3.1 Career Intelligence & Reliability.
+function sendDailyOperatorBrief() {
+  try {
+    const message = buildDailyOperatorBriefMessage_();
+    sendText(MY_ID, message);
+    writeSystemLog(
+      "Brief",
+      "Send Daily Operator Brief",
+      "Success",
+      "Daily operator brief sent."
+    );
+  } catch (error) {
+    writeSystemLog(
+      "Brief",
+      "Send Daily Operator Brief",
+      "Error",
+      getErrorMessage_(error)
+    );
+    sendText(MY_ID, "⚠️ Daily operator brief failed: " + escapeTelegramMarkdown(getErrorMessage_(error)));
+  }
+}
+
+function buildDailyOperatorBriefMessage_() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return (
+    "🧭 *Daily Operator Brief*\n" +
+    "Date: " + escapeTelegramMarkdown(formatApplicationDate_(today)) + "\n\n" +
+    buildBriefHabitSection_(today) + "\n\n" +
+    buildBriefCareerSection_() + "\n\n" +
+    buildBriefStatusAgingSection_()
+  );
+}
+
+function buildBriefHabitSection_(today) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dbSheet = ss.getSheetByName("Daily_DB");
+
+  if (!dbSheet || dbSheet.getLastRow() < 2) {
+    return "✅ *Habit Check*\nNo habit records found for today.";
+  }
+
+  const data = dbSheet.getDataRange().getValues();
+  const todayRows = data.slice(1).filter(row =>
+    row && row[0] instanceof Date && normalizeApplicationDate_(row[0]).getTime() === today.getTime()
+  );
+  const incompleteRows = todayRows.filter(row => row[3] !== true);
+
+  if (todayRows.length === 0) {
+    return "✅ *Habit Check*\nNo habit checklist generated for today yet.";
+  }
+
+  if (incompleteRows.length === 0) {
+    return "✅ *Habit Check*\nAll habits are complete for today.";
+  }
+
+  const incompleteList = incompleteRows
+    .slice(0, 8)
+    .map(row => "- " + escapeTelegramMarkdown(row[2] || "(Unnamed habit)"))
+    .join("\n");
+  const overflow = incompleteRows.length > 8
+    ? "\n+" + (incompleteRows.length - 8) + " more"
+    : "";
+
+  return (
+    "🟡 *Habit Check*\n" +
+    incompleteRows.length + "/" + todayRows.length + " habits still open:\n" +
+    incompleteList +
+    overflow
+  );
+}
+
+function buildBriefCareerSection_() {
+  const followUpCount = getCareerFollowUpCount();
+
+  if (followUpCount === 0) {
+    return "✅ *Career Check*\nNo applications require follow-up today.";
+  }
+
+  return (
+    "📌 *Career Check*\n" +
+    followUpCount + " application follow-up" + (followUpCount === 1 ? "" : "s") + " due today."
+  );
+}
+
+function buildBriefStatusAgingSection_() {
+  const oldestApplied = getOldestAppliedApplications(3);
+
+  if (oldestApplied.length === 0) {
+    return "✅ *Status Aging*\nNo active Applied records to age.";
+  }
+
+  const agingList = oldestApplied.map(item =>
+    "- " + escapeTelegramMarkdown(item.companyName) + ": " +
+    item.daysSinceApplied + " days"
+  );
+
+  return "⏳ *Status Aging*\n" + agingList.join("\n");
+}
+
+function setupDailyOperatorBriefTrigger() {
+  deleteDailyOperatorBriefTriggers();
+
+  ScriptApp
+    .newTrigger("sendDailyOperatorBrief")
+    .timeBased()
+    .everyDays(1)
+    .atHour(8)
+    .create();
+
+  writeSystemLog(
+    "Brief",
+    "Setup Daily Operator Brief Trigger",
+    "Success",
+    "Daily operator brief trigger scheduled for 08:00 WIB."
+  );
+}
+
+function deleteDailyOperatorBriefTriggers() {
+  const triggers = ScriptApp.getProjectTriggers();
+
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === "sendDailyOperatorBrief") {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+}
 ```
 
 ## src/career.gs
@@ -92,21 +226,8 @@ function standardizeApplicationsSheet() {
 }
 
 function getFollowUpList() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
-
-  if (!sheet || sheet.getLastRow() < 2) {
-    return "✅ All clear! No applications require follow-up today.";
-  }
-
-  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
-  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const followUpItems = getCareerFollowUpItems_();
   const today = normalizeApplicationDate_(new Date());
-  const followUpItems = values
-    .slice(1)
-    .filter(row => row.some(value => value !== "" && value !== null))
-    .map(row => buildApplicationFollowUpItem_(row, headerMap, today))
-    .filter(item => item !== null);
 
   if (followUpItems.length === 0) {
     return "✅ All clear! No applications require follow-up today.";
@@ -118,6 +239,86 @@ function getFollowUpList() {
     "Pending items: " + followUpItems.length + "\n\n" +
     followUpItems.map(formatApplicationFollowUpMemo_).join("\n\n")
   );
+}
+
+function getCareerDashboardStats() {
+  const rows = getApplicationDataRows_();
+  const totalApplications = rows.length;
+  const offerCount = rows.filter(item => item.status === "offer").length;
+  const rejectedCount = rows.filter(item => item.status === "rejected").length;
+  const interviewPipeline = rows.filter(item => item.status === "interview").length;
+
+  return {
+    totalApplications: totalApplications,
+    offerCount: offerCount,
+    rejectedCount: rejectedCount,
+    interviewPipeline: interviewPipeline,
+    followUpsDue: getCareerFollowUpItems_().length,
+    successRate: calculateApplicationRate_(offerCount, totalApplications),
+    rejectionRate: calculateApplicationRate_(rejectedCount, totalApplications)
+  };
+}
+
+function buildCareerDashboardMessage() {
+  const stats = getCareerDashboardStats();
+
+  return (
+    "📊 *Executive Career Dashboard*\n" +
+    "Total Applications: " + stats.totalApplications + "\n" +
+    "Success Rate: " + stats.successRate + "% (" + stats.offerCount + " offer)\n" +
+    "Rejection Rate: " + stats.rejectionRate + "% (" + stats.rejectedCount + " rejected)\n" +
+    "Interview Pipeline: " + stats.interviewPipeline + "\n" +
+    "Follow-Ups Due: " + stats.followUpsDue
+  );
+}
+
+function getCareerFollowUpCount() {
+  return getCareerFollowUpItems_().length;
+}
+
+function getOldestAppliedApplications(limit) {
+  return getApplicationDataRows_()
+    .filter(item => item.status === "applied" && item.daysSinceApplied !== null)
+    .sort((a, b) => b.daysSinceApplied - a.daysSinceApplied)
+    .slice(0, limit || 3);
+}
+
+function getApplicationDataRows_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const today = normalizeApplicationDate_(new Date());
+
+  return values
+    .slice(1)
+    .filter(row => row.some(value => value !== "" && value !== null))
+    .map(row => buildApplicationDataItem_(row, headerMap, today));
+}
+
+function getCareerFollowUpItems_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const today = normalizeApplicationDate_(new Date());
+  const followUpItems = values
+    .slice(1)
+    .filter(row => row.some(value => value !== "" && value !== null))
+    .map(row => buildApplicationFollowUpItem_(row, headerMap, today))
+    .filter(item => item !== null);
+
+  return followUpItems;
 }
 
 function getApplicationsExistingValues_(sheet) {
@@ -288,6 +489,24 @@ function buildApplicationFollowUpItem_(row, headerMap, today) {
   };
 }
 
+function buildApplicationDataItem_(row, headerMap, today) {
+  const dateApplied = parseApplicationDate_(
+    getApplicationValue_(row, headerMap, ["Date Applied", "Date"])
+  );
+  const daysSinceApplied = dateApplied
+    ? Math.floor((today.getTime() - dateApplied.getTime()) / 86400000)
+    : null;
+
+  return {
+    companyName: getApplicationValue_(row, headerMap, ["Company Name", "Company"]) || "-",
+    jobTitle: getApplicationValue_(row, headerMap, ["Job Title", "Position"]) || "-",
+    status: String(getApplicationValue_(row, headerMap, ["Status"]) || "").trim().toLowerCase(),
+    dateApplied: dateApplied,
+    daysSinceApplied: daysSinceApplied,
+    notes: getApplicationValue_(row, headerMap, ["Notes"]) || ""
+  };
+}
+
 function formatApplicationFollowUpMemo_(item, index) {
   const daysSinceApplied = item.daysSinceApplied === null
     ? "Unknown"
@@ -332,6 +551,12 @@ function formatApplicationDate_(date) {
     Session.getScriptTimeZone(),
     "dd MMM yyyy"
   );
+}
+
+function calculateApplicationRate_(count, total) {
+  if (!total) return "0.0";
+
+  return ((count / total) * 100).toFixed(1);
 }
 ```
 
@@ -549,6 +774,7 @@ function deleteDailyHabitReminderTriggers() {
 
 ```javascript
 // Functions moved into module files:
+// - src/brief.gs
 // - src/career.gs
 // - src/habit.gs
 // - src/telegram.gs
@@ -768,6 +994,12 @@ return;
       }
 
 
+      if (text === "/career") {
+        sendText(chatId, buildCareerDashboardMessage());
+        return;
+      }
+
+
       const dbSheet = ss.getSheetByName("Daily_DB");
 
 
@@ -904,8 +1136,9 @@ function buildTelegramHelpMessage() {
     "9. `/audit` - AI Audit mingguan\n" +
     "10. `/lastaudit` - Preview audit terakhir\n" +
     "11. `/followup` - Memo follow-up lamaran kerja\n" +
-    "12. `/note habit | alasan` - Tambah catatan habit\n" +
-    "13. Ketik nama habit untuk mencentang\n\n" +
+    "12. `/career` - Executive career dashboard\n" +
+    "13. `/note habit | alasan` - Tambah catatan habit\n" +
+    "14. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
