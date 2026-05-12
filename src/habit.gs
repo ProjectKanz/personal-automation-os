@@ -35,7 +35,9 @@ function generateDailyChecklist() {
   if (dataBaru.length > 0) {
     dbSheet.getRange(dbSheet.getLastRow() + 1, 1, dataBaru.length, 5).setValues(dataBaru);
     dbSheet.getRange(dbSheet.getLastRow() - dataBaru.length + 1, 4, dataBaru.length, 1).insertCheckboxes();
-    SpreadsheetApp.getUi().alert("Berhasil menambah " + dataBaru.length + " habit ke database.");
+    const message = "Berhasil menambah " + dataBaru.length + " habit ke database.";
+    console.log(message);
+    writeSystemLog("Habit", "Generate Daily Checklist", "Success", message);
   }
 }
 
@@ -76,7 +78,9 @@ function logDailyToDB() {
   // 1. Ambil Tanggal Utama dari sel A2
   const tgl = dashSheet.getRange("A2").getValue();
   if (!(tgl instanceof Date)) {
-    SpreadsheetApp.getUi().alert("Peringatan: Sel A2 harus berisi format tanggal yang benar.");
+    const message = "Peringatan: Sel A2 harus berisi format tanggal yang benar.";
+    console.log(message);
+    writeSystemLog("Habit", "Log Daily To DB", "Error", message);
     return;
   }
  
@@ -113,7 +117,9 @@ function logDailyToDB() {
   });
 
 
-  SpreadsheetApp.getUi().alert("Sinkronisasi Selesai! Data tanggal " + targetDateString + " sudah masuk ke Daily_DB.");
+  const message = "Sinkronisasi Selesai! Data tanggal " + targetDateString + " sudah masuk ke Daily_DB.";
+  console.log(message);
+  writeSystemLog("Habit", "Log Daily To DB", "Success", message);
 }
 
 
