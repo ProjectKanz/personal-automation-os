@@ -61,15 +61,29 @@ function themeSheetIfExists_(ss, sheetName, themeFn) {
   }
 
 
-  themeFn(sheet);
+  try {
+    themeFn(sheet);
+  } catch (error) {
+    if (isTypedColumnsError_(error)) {
+      console.warn(
+        "Skipped theme for " + sheetName +
+        " because typed columns do not allow this formatting operation: " +
+        getErrorMessage_(error)
+      );
+      return;
+    }
+
+    throw error;
+  }
 }
 
 
 function themeDashboardSheet_(sheet) {
   const lastColumn = Math.max(sheet.getLastColumn(), 1);
+  const lastRow = sheet.getLastRow();
 
 
-  if (sheet.getLastRow() >= 1) {
+  if (lastRow >= 1) {
     sheet.setFrozenRows(1);
     styleHeaderRow_(sheet, 1, lastColumn);
   }
@@ -87,17 +101,52 @@ function themeDashboardSheet_(sheet) {
   ]);
 
 
-  if (lastColumn >= 1) {
-    sheet.getRange(1, 1, sheet.getMaxRows(), 1).setNumberFormat("dd mmm yyyy");
+  if (lastColumn >= 1 && lastRow > 0) {
+    applyNumberFormatToUsedRows_(sheet, 1, "dd mmm yyyy");
   }
+}
+
+
+function applyNumberFormatToUsedRows_(sheet, column, numberFormat) {
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow <= 0) return;
+
+  try {
+    sheet
+      .getRange(1, column, lastRow, 1)
+      .setNumberFormat(numberFormat);
+  } catch (error) {
+    if (isTypedColumnsError_(error)) {
+      console.warn(
+        "Skipped number format for " + sheet.getName() +
+        " column " + column +
+        " because of typed columns: " + getErrorMessage_(error)
+      );
+      return;
+    }
+
+    throw error;
+  }
+}
+
+
+function isTypedColumnsError_(error) {
+  return getErrorMessage_(error).toLowerCase().indexOf("typed columns") !== -1;
+}
+
+
+function getErrorMessage_(error) {
+  return String(error && error.message ? error.message : error);
 }
 
 
 function themeApplicationsSheet_(sheet) {
   const lastColumn = Math.max(sheet.getLastColumn(), 1);
+  const lastRow = sheet.getLastRow();
 
 
-  if (sheet.getLastRow() >= 1) {
+  if (lastRow >= 1) {
     sheet.setFrozenRows(1);
     styleHeaderRow_(sheet, 1, lastColumn);
   }
@@ -119,21 +168,22 @@ function themeApplicationsSheet_(sheet) {
 
 
   if (lastColumn >= 4) {
-    sheet.getRange(1, 4, sheet.getMaxRows(), 1).setNumberFormat("dd mmm yyyy");
+    applyNumberFormatToUsedRows_(sheet, 4, "dd mmm yyyy");
   }
 
 
   if (lastColumn >= 8) {
-    applyStatusConditionalFormatting_(sheet, sheet.getRange(2, 8, Math.max(sheet.getMaxRows() - 1, 1), 1));
+    applyStatusConditionalFormatting_(sheet, sheet.getRange(2, 8, Math.max(lastRow - 1, 1), 1));
   }
 }
 
 
 function themeAIAuditSheet_(sheet) {
   const lastColumn = Math.max(sheet.getLastColumn(), 1);
+  const lastRow = sheet.getLastRow();
 
 
-  if (sheet.getLastRow() >= 1) {
+  if (lastRow >= 1) {
     sheet.setFrozenRows(1);
     styleHeaderRow_(sheet, 1, lastColumn);
   }
@@ -145,14 +195,16 @@ function themeAIAuditSheet_(sheet) {
 
   if (lastColumn >= 2) {
     sheet.setColumnWidth(2, 720);
-    sheet
-      .getRange(1, 2, sheet.getMaxRows(), 1)
-      .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
-      .setVerticalAlignment("top");
+    if (lastRow > 0) {
+      sheet
+        .getRange(1, 2, lastRow, 1)
+        .setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+        .setVerticalAlignment("top");
+    }
   }
 
 
-  sheet.getRange(1, 1, sheet.getMaxRows(), 1).setNumberFormat("dd mmm yyyy hh:mm");
+  applyNumberFormatToUsedRows_(sheet, 1, "dd mmm yyyy hh:mm");
 }
 
 
