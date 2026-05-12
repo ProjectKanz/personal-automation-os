@@ -193,6 +193,18 @@ return;
       const text = rawText.toLowerCase();
 
 
+      if (text === "/help" || text === "/list") {
+        sendText(chatId, buildTelegramHelpMessage());
+        return;
+      }
+
+
+      if (text === "/followup") {
+        sendText(chatId, getFollowUpList());
+        return;
+      }
+
+
       const dbSheet = ss.getSheetByName("Daily_DB");
 
 
@@ -204,14 +216,6 @@ return;
 
       const data = dbSheet.getDataRange().getValues();
       const today = new Date().setHours(0, 0, 0, 0);
-
-
-      if (text === "/help" || text === "/list") {
-        sendText(chatId, buildTelegramHelpMessage());
-
-
-        return;
-      }
 
 
       if (text === "/today") {
@@ -336,8 +340,9 @@ function buildTelegramHelpMessage() {
     "8. `/reminderstatus` - Status reminder\n" +
     "9. `/audit` - AI Audit mingguan\n" +
     "10. `/lastaudit` - Preview audit terakhir\n" +
-    "11. `/note habit | alasan` - Tambah catatan habit\n" +
-    "12. Ketik nama habit untuk mencentang\n\n" +
+    "11. `/followup` - Memo follow-up lamaran kerja\n" +
+    "12. `/note habit | alasan` - Tambah catatan habit\n" +
+    "13. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }

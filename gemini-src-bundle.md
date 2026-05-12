@@ -80,6 +80,7 @@ function standardizeApplicationsSheet() {
   }
 
   ensureApplicationsMinimumRows_(sheet);
+  cleanupApplicationsFormatting_(sheet);
   applyApplicationsDataValidation_(sheet);
   applyPortfolioSheetTheme();
   writeSystemLog(
@@ -87,6 +88,35 @@ function standardizeApplicationsSheet() {
     "Standardize Sheet",
     "Success",
     "Applications sheet migrated to V3.0 standard"
+  );
+}
+
+function getFollowUpList() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(APPLICATIONS_SHEET_NAME);
+
+  if (!sheet || sheet.getLastRow() < 2) {
+    return "✅ All clear! No applications require follow-up today.";
+  }
+
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+  const headerMap = buildApplicationsHeaderMap_(values[0]);
+  const today = normalizeApplicationDate_(new Date());
+  const followUpItems = values
+    .slice(1)
+    .filter(row => row.some(value => value !== "" && value !== null))
+    .map(row => buildApplicationFollowUpItem_(row, headerMap, today))
+    .filter(item => item !== null);
+
+  if (followUpItems.length === 0) {
+    return "✅ All clear! No applications require follow-up today.";
+  }
+
+  return (
+    "📌 *Executive Follow-Up Memo*\n" +
+    "Date: " + escapeTelegramMarkdown(formatApplicationDate_(today)) + "\n" +
+    "Pending items: " + followUpItems.length + "\n\n" +
+    followUpItems.map(formatApplicationFollowUpMemo_).join("\n\n")
   );
 }
 
@@ -179,6 +209,17 @@ function ensureApplicationsMinimumRows_(sheet) {
   }
 }
 
+function cleanupApplicationsFormatting_(sheet) {
+  const rowCount = sheet.getMaxRows();
+
+  sheet
+    .getRange(1, 1, rowCount, APPLICATIONS_V3_HEADERS.length)
+    .clearDataValidations();
+  applyNumberFormatToUsedRows_(sheet, 5, "@");
+  applyNumberFormatToUsedRows_(sheet, 7, "dd mmm yyyy");
+  applyNumberFormatToUsedRows_(sheet, 9, "dd mmm yyyy");
+}
+
 function applyApplicationsDataValidation_(sheet) {
   const validationRowCount = sheet.getMaxRows() - 1;
   const statusRule = SpreadsheetApp
@@ -202,6 +243,95 @@ function applyApplicationsDataValidation_(sheet) {
 
 function normalizeApplicationsHeader_(header) {
   return String(header || "").trim().toLowerCase();
+}
+
+function buildApplicationFollowUpItem_(row, headerMap, today) {
+  const status = String(
+    getApplicationValue_(row, headerMap, ["Status"]) || ""
+  ).trim().toLowerCase();
+  const fuRequired = String(
+    getApplicationValue_(row, headerMap, ["FU Required?", "FU"]) || ""
+  ).trim().toLowerCase();
+  const closedStatuses = ["rejected", "withdrawn", "offer"];
+
+  if (closedStatuses.indexOf(status) !== -1) {
+    return null;
+  }
+
+  if (fuRequired !== "" && fuRequired !== "yes") {
+    return null;
+  }
+
+  const dateApplied = parseApplicationDate_(
+    getApplicationValue_(row, headerMap, ["Date Applied", "Date"])
+  );
+  const followUpDate = parseApplicationDate_(
+    getApplicationValue_(row, headerMap, ["Follow Up Date", "Date FU"])
+  );
+  const followUpDue = followUpDate && followUpDate.getTime() <= today.getTime();
+  const daysSinceApplied = dateApplied
+    ? Math.floor((today.getTime() - dateApplied.getTime()) / 86400000)
+    : null;
+  const staleApplication = dateApplied &&
+    daysSinceApplied !== null &&
+    daysSinceApplied > 7;
+
+  if (!followUpDue && !staleApplication) {
+    return null;
+  }
+
+  return {
+    companyName: getApplicationValue_(row, headerMap, ["Company Name", "Company"]) || "-",
+    jobTitle: getApplicationValue_(row, headerMap, ["Job Title", "Position"]) || "-",
+    daysSinceApplied: daysSinceApplied,
+    notes: getApplicationValue_(row, headerMap, ["Notes"]) || "No notes provided."
+  };
+}
+
+function formatApplicationFollowUpMemo_(item, index) {
+  const daysSinceApplied = item.daysSinceApplied === null
+    ? "Unknown"
+    : item.daysSinceApplied + " days";
+
+  return (
+    "*Memo " + (index + 1) + "*\n" +
+    "*Company Name:* " + escapeTelegramMarkdown(item.companyName) + "\n" +
+    "*Job Title:* " + escapeTelegramMarkdown(item.jobTitle) + "\n" +
+    "*Days since Applied:* " + escapeTelegramMarkdown(daysSinceApplied) + "\n" +
+    "*Context:* " + escapeTelegramMarkdown(item.notes)
+  );
+}
+
+function parseApplicationDate_(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return normalizeApplicationDate_(value);
+  }
+
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+
+  const parsedDate = new Date(value);
+
+  if (isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return normalizeApplicationDate_(parsedDate);
+}
+
+function normalizeApplicationDate_(date) {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(0, 0, 0, 0);
+  return normalizedDate;
+}
+
+function formatApplicationDate_(date) {
+  return Utilities.formatDate(
+    date,
+    Session.getScriptTimeZone(),
+    "dd MMM yyyy"
+  );
 }
 ```
 
@@ -626,6 +756,18 @@ return;
       const text = rawText.toLowerCase();
 
 
+      if (text === "/help" || text === "/list") {
+        sendText(chatId, buildTelegramHelpMessage());
+        return;
+      }
+
+
+      if (text === "/followup") {
+        sendText(chatId, getFollowUpList());
+        return;
+      }
+
+
       const dbSheet = ss.getSheetByName("Daily_DB");
 
 
@@ -637,14 +779,6 @@ return;
 
       const data = dbSheet.getDataRange().getValues();
       const today = new Date().setHours(0, 0, 0, 0);
-
-
-      if (text === "/help" || text === "/list") {
-        sendText(chatId, buildTelegramHelpMessage());
-
-
-        return;
-      }
 
 
       if (text === "/today") {
@@ -769,8 +903,9 @@ function buildTelegramHelpMessage() {
     "8. `/reminderstatus` - Status reminder\n" +
     "9. `/audit` - AI Audit mingguan\n" +
     "10. `/lastaudit` - Preview audit terakhir\n" +
-    "11. `/note habit | alasan` - Tambah catatan habit\n" +
-    "12. Ketik nama habit untuk mencentang\n\n" +
+    "11. `/followup` - Memo follow-up lamaran kerja\n" +
+    "12. `/note habit | alasan` - Tambah catatan habit\n" +
+    "13. Ketik nama habit untuk mencentang\n\n" +
     "`/list` tetap bisa dipakai sebagai alias `/help`."
   );
 }
@@ -1454,7 +1589,7 @@ function applyNumberFormatToUsedRows_(sheet, column, numberFormat) {
       console.warn(
         "Skipped number format for " + sheet.getName() +
         " column " + column +
-        " because of typed columns: " + getErrorMessage_(error)
+        " because of a typed column restriction: " + getErrorMessage_(error)
       );
       return;
     }
@@ -1465,7 +1600,7 @@ function applyNumberFormatToUsedRows_(sheet, column, numberFormat) {
 
 
 function isTypedColumnsError_(error) {
-  return getErrorMessage_(error).toLowerCase().indexOf("typed columns") !== -1;
+  return getErrorMessage_(error).toLowerCase().indexOf("typed column") !== -1;
 }
 
 

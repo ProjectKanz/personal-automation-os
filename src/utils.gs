@@ -121,7 +121,7 @@ function applyNumberFormatToUsedRows_(sheet, column, numberFormat) {
       console.warn(
         "Skipped number format for " + sheet.getName() +
         " column " + column +
-        " because of typed columns: " + getErrorMessage_(error)
+        " because of a typed column restriction: " + getErrorMessage_(error)
       );
       return;
     }
@@ -132,7 +132,7 @@ function applyNumberFormatToUsedRows_(sheet, column, numberFormat) {
 
 
 function isTypedColumnsError_(error) {
-  return getErrorMessage_(error).toLowerCase().indexOf("typed columns") !== -1;
+  return getErrorMessage_(error).toLowerCase().indexOf("typed column") !== -1;
 }
 
 
