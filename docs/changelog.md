@@ -13,6 +13,8 @@ All notable changes to this project are documented here.
 - Conversion-rate analysis for CV tags using Assessment/Interview as positive response signals.
 - Stagnancy detection for Applied applications older than 7 days, with Yellow Zone and Red Zone labels.
 - Diversification audit by sector, including Banking, Automotive/Conglomerate, Consulting/Data, FMCG, Technology/Digital, and Other.
+- Expanded industry recognition for Tech/Digital, FMCG/Retail, Banking/Finance, Consulting/Data, and Logistics/Transport.
+- Fallback role-based categorization using Job Title and Notes when company names do not match known sectors.
 
 ### Notes
 

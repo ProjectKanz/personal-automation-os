@@ -571,7 +571,7 @@ function analyzeCareerDiversification_(rows) {
   const sectorCounts = {};
 
   rows.forEach(row => {
-    const sector = classifyCareerSector_(row.companyName);
+    const sector = classifyCareerSector_(row);
     sectorCounts[sector] = (sectorCounts[sector] || 0) + 1;
   });
 
@@ -591,27 +591,47 @@ function analyzeCareerDiversification_(rows) {
   };
 }
 
-function classifyCareerSector_(companyName) {
-  const company = String(companyName || "").toLowerCase();
+function classifyCareerSector_(application) {
+  const company = String(application && application.companyName ? application.companyName : "");
+  const jobTitle = String(application && application.jobTitle ? application.jobTitle : "");
+  const notes = String(application && application.notes ? application.notes : "");
+  const companyText = company.toLowerCase();
+  const contextText = (company + " " + jobTitle + " " + notes).toLowerCase();
 
-  if (/(bank|mandiri|ocbc|bca|bri|bni|btn|cimb|danamon|permata|maybank|uob|hsbc)/i.test(company)) {
-    return "Banking";
+  if (/(bank|mandiri|ocbc|idx|fif\s*group|bca|bri|bni|btn|cimb|danamon|permata|maybank|uob|hsbc)/i.test(companyText)) {
+    return "Banking/Finance";
   }
 
-  if (/(astra|auto2000|toyota|daihatsu|isuzu|honda|mitsubishi|adira)/i.test(company)) {
+  if (/(astra|auto2000|toyota|daihatsu|isuzu|honda|mitsubishi|adira)/i.test(companyText)) {
     return "Automotive/Conglomerate";
   }
 
-  if (/(nielsen|abeam|accenture|deloitte|pwc|kpmg|ey|mckinsey|bcg|bain|data|analytics)/i.test(company)) {
+  if (/(nielsen|abeam|adecoo|accenture|deloitte|pwc|kpmg|ey|mckinsey|bcg|bain|data|analytics)/i.test(companyText)) {
     return "Consulting/Data";
   }
 
-  if (/(unilever|nestle|indofood|wings|mayora|danone|fmcg|p&g|procter)/i.test(company)) {
-    return "FMCG";
+  if (/(coca[\s-]*cola|map|philip\s*morris|unilever|nestle|indofood|wings|mayora|danone|fmcg|p&g|procter)/i.test(companyText)) {
+    return "FMCG/Retail";
   }
 
-  if (/(telkom|gojek|tokopedia|shopee|grab|traveloka|bukalapak|tech|digital)/i.test(company)) {
-    return "Technology/Digital";
+  if (/(huawei|garena|jakarta\s*digital\s*nusantara|siemens|telkom|gojek|tokopedia|shopee|grab|traveloka|bukalapak|tech|digital)/i.test(companyText)) {
+    return "Tech/Digital";
+  }
+
+  if (/(transjakarta|deliveree|logistics|transport|shipping|supply\s*chain|warehouse)/i.test(companyText)) {
+    return "Logistics/Transport";
+  }
+
+  if (/(analyst|analytics|data|business\s*intelligence|bi\b)/i.test(contextText)) {
+    return "Role-Inferred: Analyst/Data";
+  }
+
+  if (/(marketing|brand|growth|campaign|commercial|sales)/i.test(contextText)) {
+    return "Role-Inferred: Marketing/Commercial";
+  }
+
+  if (/(engineer|engineering|developer|software|automation|technical|it\b)/i.test(contextText)) {
+    return "Role-Inferred: Engineering/Tech";
   }
 
   return "Other";
