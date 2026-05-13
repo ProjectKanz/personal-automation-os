@@ -1,4 +1,11 @@
 // Career module: Application tracking DSS standardization.
+const SYSTEM_STATE = {
+  version: "V3.4",
+  phase: "Agentic AI & Intelligence"
+};
+const VERSION_HISTORY = {
+  "V3.0-V3.4": "Autonomous Career Coaching, CV Performance Gap Analysis (+46 pts), Automated Industry Mapping, and Executive Follow-up Memos."
+};
 const APPLICATIONS_SHEET_NAME = "Applications";
 const APPLICATIONS_V3_HEADERS = [
   "Company Name",
@@ -120,7 +127,8 @@ function buildCareerDashboardMessage() {
 }
 
 function analyzeCareerStrategy() {
-  const rows = getApplicationDataRows_();
+  const analysis = buildCareerStrategyAnalysis_();
+  const rows = analysis.rows;
 
   if (rows.length === 0) {
     return (
@@ -129,23 +137,69 @@ function analyzeCareerStrategy() {
     );
   }
 
-  const diversification = analyzeCareerDiversification_(rows);
-  const cvPerformance = analyzeCareerCvPerformance_(rows);
-  const coldLeads = getCareerColdLeads_(rows, 3);
-  const nextMove = buildCareerNextMove_(diversification, cvPerformance, coldLeads);
-
   return (
     "📊 *AI Career Advisor Memo*\n" +
     "Applications reviewed: " + rows.length + "\n\n" +
     "*📊 Diversification Audit:*\n" +
-    buildCareerDiversificationMemo_(diversification) +
+    buildCareerDiversificationMemo_(analysis.diversification) +
     "\n\n*💡 CV Insight:*\n" +
-    buildCareerCvInsightMemo_(cvPerformance) +
+    buildCareerCvInsightMemo_(analysis.cvPerformance) +
     "\n\n*⏳ Stagnancy Alert:*\n" +
-    buildCareerColdLeadMemo_(coldLeads) +
+    buildCareerColdLeadMemo_(analysis.coldLeads) +
     "\n\n*🎯 Next Move:*\n" +
-    nextMove
+    analysis.nextMove
   );
+}
+
+function generateLinkedInCampaign() {
+  const analysis = buildCareerStrategyAnalysis_();
+  const totalApplications = analysis.rows.length;
+  const bestTag = analysis.cvPerformance.bestTag;
+  const baselineTag = analysis.cvPerformance.baselineTag;
+  const cvGap = bestTag && baselineTag
+    ? bestTag.rate - baselineTag.rate
+    : null;
+  const bestCvLine = bestTag
+    ? bestTag.tag + " CVs are leading with " + bestTag.rate + "% response signal across " + bestTag.total + " applications."
+    : "CV performance data is still being built from the Applications sheet.";
+  const cvGapLine = cvGap !== null && cvGap > 0
+    ? "The strongest CV positioning is +" + cvGap + " pts above General CVs."
+    : "The system is already structured to measure CV performance gaps as the dataset grows.";
+  const applicationScale = totalApplications >= 27
+    ? totalApplications + "+ apps"
+    : totalApplications + " apps";
+
+  return {
+    hook: [
+      "I built a personal infrastructure layer for career execution.",
+      "V3 moved the system from manual tracking into an Agentic AI workflow: daily reliability, mobile data entry, and strategic coaching.",
+      "This is where Management, Marketing, and AI Engineering meet in one operating system."
+    ],
+    carouselBlueprint: [
+      "Slide 1: From V2 manual tracking to V3 Agentic execution - I stopped treating applications as scattered tasks and started treating them as an operating system.",
+      "Slide 2: The Morning Routine (V3.0-V3.1) - Automated Executive Memos and Daily Briefs audit my pipeline every morning at 08:00 WIB for Reliability & Consistency.",
+      "Slide 3: Zero-Friction Entry (V3.2) - Instant Telegram Data Entry lets me add job applications in about 5 seconds from mobile, preserving momentum instead of creating admin drag.",
+      "Slide 4: The Brain (V3.3-V3.4) - /careercoach maps industries in real time and compares CV positioning. " + bestCvLine + " " + cvGapLine,
+      "Slide 5: The Impact - Managing " + applicationScale + " with less mental fatigue because follow-ups, stagnancy, and strategy signals are surfaced automatically.",
+      "Slide 6: Conclusion - I am ready to bring this Operational Intelligence mindset to a company: reliable execution, marketing-aware positioning, and practical AI Engineering."
+    ],
+    videoIdea: [
+      "Start with the problem: manual career tracking creates follow-up debt, weak signal, and mental fatigue.",
+      "Show the V3 foundation: Daily Briefs and Executive Memos supporting reliability at 08:00 WIB.",
+      "Open Telegram and add an application with /careeradd to demonstrate the V3.2 mobile workflow.",
+      "Run /careercoach to show the V3.3-V3.4 intelligence layer: industry mapping, CV performance gap, cold leads, and next move.",
+      "Close with the message: I built personal infrastructure to turn execution, positioning, and analytics into one management system."
+    ],
+    metrics: {
+      totalApplications: totalApplications,
+      bestCvTag: bestTag ? bestTag.tag : "Not enough data",
+      bestCvRate: bestTag ? bestTag.rate : 0,
+      cvPerformanceGap: cvGap,
+      version: SYSTEM_STATE.version,
+      phase: SYSTEM_STATE.phase,
+      allowedFeatureScope: VERSION_HISTORY["V3.0-V3.4"]
+    }
+  };
 }
 
 function addApplicationFromTelegram(inputString) {
@@ -564,6 +618,21 @@ function buildApplicationDataItem_(row, headerMap, today) {
     cvVersion: getApplicationField_(row, headerMap, ["CV VERSION", "CV", "CV Version"], APPLICATIONS_COL.CV_VERSION) || "",
     jobLink: getApplicationField_(row, headerMap, ["Link Job posting", "Link"], APPLICATIONS_COL.LINK_JOB_POSTING) || "",
     notes: getApplicationField_(row, headerMap, ["Notes"], APPLICATIONS_COL.NOTES) || ""
+  };
+}
+
+function buildCareerStrategyAnalysis_() {
+  const rows = getApplicationDataRows_();
+  const diversification = analyzeCareerDiversification_(rows);
+  const cvPerformance = analyzeCareerCvPerformance_(rows);
+  const coldLeads = getCareerColdLeads_(rows, 3);
+
+  return {
+    rows: rows,
+    diversification: diversification,
+    cvPerformance: cvPerformance,
+    coldLeads: coldLeads,
+    nextMove: buildCareerNextMove_(diversification, cvPerformance, coldLeads)
   };
 }
 
