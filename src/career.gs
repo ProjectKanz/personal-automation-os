@@ -119,6 +119,35 @@ function buildCareerDashboardMessage() {
   );
 }
 
+function analyzeCareerStrategy() {
+  const rows = getApplicationDataRows_();
+
+  if (rows.length === 0) {
+    return (
+      "📊 *AI Career Advisor*\n" +
+      "No application data found in `Applications` yet."
+    );
+  }
+
+  const diversification = analyzeCareerDiversification_(rows);
+  const cvPerformance = analyzeCareerCvPerformance_(rows);
+  const coldLeads = getCareerColdLeads_(rows, 3);
+  const nextMove = buildCareerNextMove_(diversification, cvPerformance, coldLeads);
+
+  return (
+    "📊 *AI Career Advisor Memo*\n" +
+    "Applications reviewed: " + rows.length + "\n\n" +
+    "*📊 Diversification Audit:*\n" +
+    buildCareerDiversificationMemo_(diversification) +
+    "\n\n*💡 CV Insight:*\n" +
+    buildCareerCvInsightMemo_(cvPerformance) +
+    "\n\n*⏳ Stagnancy Alert:*\n" +
+    buildCareerColdLeadMemo_(coldLeads) +
+    "\n\n*🎯 Next Move:*\n" +
+    nextMove
+  );
+}
+
 function addApplicationFromTelegram(inputString) {
   const parsedInput = parseCareerAddInput_(inputString);
 
@@ -532,9 +561,229 @@ function buildApplicationDataItem_(row, headerMap, today) {
     status: String(getApplicationField_(row, headerMap, ["Status"], APPLICATIONS_COL.STATUS) || "").trim().toLowerCase(),
     dateApplied: dateApplied,
     daysSinceApplied: daysSinceApplied,
+    cvVersion: getApplicationField_(row, headerMap, ["CV VERSION", "CV", "CV Version"], APPLICATIONS_COL.CV_VERSION) || "",
     jobLink: getApplicationField_(row, headerMap, ["Link Job posting", "Link"], APPLICATIONS_COL.LINK_JOB_POSTING) || "",
     notes: getApplicationField_(row, headerMap, ["Notes"], APPLICATIONS_COL.NOTES) || ""
   };
+}
+
+function analyzeCareerDiversification_(rows) {
+  const sectorCounts = {};
+
+  rows.forEach(row => {
+    const sector = classifyCareerSector_(row.companyName);
+    sectorCounts[sector] = (sectorCounts[sector] || 0) + 1;
+  });
+
+  const sectors = Object.keys(sectorCounts)
+    .map(sector => ({
+      sector: sector,
+      count: sectorCounts[sector],
+      percentage: Math.round((sectorCounts[sector] / rows.length) * 100)
+    }))
+    .sort((a, b) => b.count - a.count || a.sector.localeCompare(b.sector));
+
+  return {
+    total: rows.length,
+    sectors: sectors,
+    dominantSector: sectors.length > 0 ? sectors[0] : null,
+    isConcentrated: sectors.length > 0 && sectors[0].percentage > 50
+  };
+}
+
+function classifyCareerSector_(companyName) {
+  const company = String(companyName || "").toLowerCase();
+
+  if (/(bank|mandiri|ocbc|bca|bri|bni|btn|cimb|danamon|permata|maybank|uob|hsbc)/i.test(company)) {
+    return "Banking";
+  }
+
+  if (/(astra|auto2000|toyota|daihatsu|isuzu|honda|mitsubishi|adira)/i.test(company)) {
+    return "Automotive/Conglomerate";
+  }
+
+  if (/(nielsen|abeam|accenture|deloitte|pwc|kpmg|ey|mckinsey|bcg|bain|data|analytics)/i.test(company)) {
+    return "Consulting/Data";
+  }
+
+  if (/(unilever|nestle|indofood|wings|mayora|danone|fmcg|p&g|procter)/i.test(company)) {
+    return "FMCG";
+  }
+
+  if (/(telkom|gojek|tokopedia|shopee|grab|traveloka|bukalapak|tech|digital)/i.test(company)) {
+    return "Technology/Digital";
+  }
+
+  return "Other";
+}
+
+function analyzeCareerCvPerformance_(rows) {
+  const tagStats = {};
+
+  rows.forEach(row => {
+    const tags = extractCareerCvTags_(row.cvVersion);
+    const converted = isCareerConvertedStatus_(row.status);
+
+    tags.forEach(tag => {
+      if (!tagStats[tag]) {
+        tagStats[tag] = {
+          tag: tag,
+          total: 0,
+          converted: 0
+        };
+      }
+
+      tagStats[tag].total++;
+
+      if (converted) {
+        tagStats[tag].converted++;
+      }
+    });
+  });
+
+  const tags = Object.keys(tagStats)
+    .map(tag => ({
+      tag: tag,
+      total: tagStats[tag].total,
+      converted: tagStats[tag].converted,
+      rate: tagStats[tag].total === 0
+        ? 0
+        : Math.round((tagStats[tag].converted / tagStats[tag].total) * 100)
+    }))
+    .sort((a, b) => b.rate - a.rate || b.total - a.total || a.tag.localeCompare(b.tag));
+
+  return {
+    tags: tags,
+    bestTag: tags.length > 0 ? tags[0] : null,
+    baselineTag: tags.filter(item => item.tag === "General")[0] || null
+  };
+}
+
+function extractCareerCvTags_(cvVersion) {
+  const cvText = String(cvVersion || "");
+  const tagPatterns = [
+    { tag: "MT", pattern: /\bmt\b|management trainee/i },
+    { tag: "ODP", pattern: /\bodp\b|officer development/i },
+    { tag: "Data", pattern: /\bdata\b/i },
+    { tag: "Automation", pattern: /automation/i },
+    { tag: "Analyst", pattern: /analyst/i },
+    { tag: "Business", pattern: /business/i }
+  ];
+  const tags = tagPatterns
+    .filter(item => item.pattern.test(cvText))
+    .map(item => item.tag);
+
+  return tags.length > 0 ? tags : ["General"];
+}
+
+function isCareerConvertedStatus_(status) {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+
+  return normalizedStatus === "assessment" || normalizedStatus === "interview";
+}
+
+function getCareerColdLeads_(rows, limit) {
+  return rows
+    .filter(row =>
+      row.status === "applied" &&
+      row.daysSinceApplied !== null &&
+      row.daysSinceApplied >= 7
+    )
+    .map(row => ({
+      companyName: row.companyName,
+      jobTitle: row.jobTitle,
+      daysSinceApplied: row.daysSinceApplied,
+      zone: row.daysSinceApplied > 14 ? "Red Zone" : "Yellow Zone"
+    }))
+    .sort((a, b) => b.daysSinceApplied - a.daysSinceApplied)
+    .slice(0, limit || 3);
+}
+
+function buildCareerDiversificationMemo_(analysis) {
+  if (!analysis.dominantSector) {
+    return "No sector pattern detected yet.";
+  }
+
+  const topSectors = analysis.sectors
+    .slice(0, 3)
+    .map(item =>
+      "- " + escapeTelegramMarkdown(item.sector) + ": " + item.count + " apps (" + item.percentage + "%)"
+    )
+    .join("\n");
+  const concentrationText = analysis.isConcentrated
+    ? "\nPortfolio is concentrated in " + escapeTelegramMarkdown(analysis.dominantSector.sector) + " (>50%)."
+    : "\nPortfolio spread is balanced enough for now.";
+
+  return topSectors + concentrationText;
+}
+
+function buildCareerCvInsightMemo_(analysis) {
+  if (!analysis.bestTag) {
+    return "No CV version signal detected yet. Start labeling CV Version with tags like Data, Automation, Analyst, MT, or ODP.";
+  }
+
+  const bestTagText = (
+    escapeTelegramMarkdown(analysis.bestTag.tag) +
+    " is currently strongest: " +
+    analysis.bestTag.converted + "/" +
+    analysis.bestTag.total +
+    " converted (" +
+    analysis.bestTag.rate +
+    "%)."
+  );
+
+  if (analysis.baselineTag && analysis.bestTag.tag !== "General") {
+    const delta = analysis.bestTag.rate - analysis.baselineTag.rate;
+
+    if (delta > 0) {
+      return bestTagText + "\nThis is +" + delta + " pts above General CVs.";
+    }
+  }
+
+  return bestTagText;
+}
+
+function buildCareerColdLeadMemo_(coldLeads) {
+  if (coldLeads.length === 0) {
+    return "No cold leads older than 7 days in Applied status.";
+  }
+
+  return coldLeads.map(item =>
+    "- " +
+    escapeTelegramMarkdown(item.companyName) +
+    " | " +
+    escapeTelegramMarkdown(item.jobTitle) +
+    " | " +
+    item.daysSinceApplied +
+    " days | " +
+    item.zone
+  ).join("\n");
+}
+
+function buildCareerNextMove_(diversification, cvPerformance, coldLeads) {
+  if (diversification.isConcentrated && diversification.dominantSector) {
+    return (
+      "You have " +
+      diversification.dominantSector.count +
+      " " +
+      escapeTelegramMarkdown(diversification.dominantSector.sector) +
+      " applications. Add 2 wildcard applications outside that sector this week to spread risk."
+    );
+  }
+
+  if (cvPerformance.bestTag && cvPerformance.bestTag.tag !== "General") {
+    return (
+      "Double down on " +
+      escapeTelegramMarkdown(cvPerformance.bestTag.tag) +
+      "-positioned roles for the next batch, while keeping 1-2 wildcard companies in a new sector."
+    );
+  }
+
+  if (coldLeads.length > 0) {
+    return "Follow up the oldest cold lead, then archive any Red Zone application with no strategic upside.";
+  }
+
+  return "Tag the next applications by CV Version first, then apply to 2 roles in a sector you have not tested yet.";
 }
 
 function formatApplicationFollowUpMemo_(item, index) {

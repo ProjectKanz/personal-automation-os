@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 
 ---
 
+## V3.3 (May 2026) - AI Career Advisor
+
+### Added
+
+- `/careercoach` Telegram command for an executive career strategy memo.
+- CV analytics engine that tags `CV VERSION` with MT, ODP, Data, Automation, Analyst, Business, or General.
+- Conversion-rate analysis for CV tags using Assessment/Interview as positive response signals.
+- Stagnancy detection for Applied applications older than 7 days, with Yellow Zone and Red Zone labels.
+- Diversification audit by sector, including Banking, Automotive/Conglomerate, Consulting/Data, FMCG, Technology/Digital, and Other.
+
+### Notes
+
+- Robust when `CV VERSION` is empty by assigning the General tag.
+- No new sheet schema changes.
+- No new AI API call introduced; this is rules-based advisory logic.
+
+---
+
 ## V2.9 (May 2026) - Daily Closing Review
 
 ### Added
