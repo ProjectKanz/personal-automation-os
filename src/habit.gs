@@ -83,43 +83,68 @@ function logDailyToDB() {
     writeSystemLog("Habit", "Log Daily To DB", "Error", message);
     return;
   }
- 
-  const targetDateString = tgl.toDateString();
+
+  const targetDate = normalizeDateOnly_(tgl);
+  const targetDateString = targetDate.toDateString();
 
 
   // 2. Deteksi baris terakhir secara otomatis (berdasarkan Kolom C / Aktivitas)
   const lastRow = dashSheet.getRange("C:C").getValues().filter(String).length;
+
+  if (lastRow < 2) {
+    const message = "Sinkronisasi dibatalkan: tidak ada aktivitas di Dashboard untuk tanggal " + targetDateString + ".";
+    console.log(message);
+    writeSystemLog("Habit", "Log Daily To DB", "Error", message);
+    return;
+  }
  
   // 3. Ambil data dari baris 2 sampai baris terakhir (Kolom B sampai G)
   const dataRange = dashSheet.getRange(2, 2, lastRow - 1, 6);
   const data = dataRange.getValues();
+  const rowsToSave = data
+    .map(row => {
+      return {
+        kategori: row[0],
+        aktivitas: row[1],
+        status: row[2],
+        note: row[5]
+      };
+    })
+    .filter(row => row.aktivitas);
+
+  if (rowsToSave.length === 0) {
+    const message = "Sinkronisasi dibatalkan: Dashboard tidak punya aktivitas valid untuk tanggal " + targetDateString + ".";
+    console.log(message);
+    writeSystemLog("Habit", "Log Daily To DB", "Error", message);
+    return;
+  }
 
 
   // 4. Hapus data lama di Daily_DB untuk tanggal yang sama (Anti-Duplikat)
   const dbData = dbSheet.getDataRange().getValues();
   for (let i = dbData.length - 1; i >= 1; i--) {
-    if (dbData[i][0] instanceof Date && dbData[i][0].toDateString() === targetDateString) {
+    if (dbData[i][0] instanceof Date && normalizeDateOnly_(dbData[i][0]).getTime() === targetDate.getTime()) {
       dbSheet.deleteRow(i + 1);
     }
   }
 
 
   // 5. Masukkan data habit ke Daily_DB
-  data.forEach(row => {
-    const kategori = row[0];  // Kolom B
-    const aktivitas = row[1]; // Kolom C
-    const status = row[2];    // Kolom D
-    const note = row[5];      // Kolom G
-   
-    if (aktivitas) {
-      dbSheet.appendRow([tgl, kategori, aktivitas, status, note]);
-    }
+  rowsToSave.forEach(row => {
+    dbSheet.appendRow([targetDate, row.kategori, row.aktivitas, row.status, row.note]);
   });
 
 
   const message = "Sinkronisasi Selesai! Data tanggal " + targetDateString + " sudah masuk ke Daily_DB.";
   console.log(message);
   writeSystemLog("Habit", "Log Daily To DB", "Success", message);
+}
+
+
+function normalizeDateOnly_(dateValue) {
+  const normalizedDate = new Date(dateValue);
+  normalizedDate.setHours(0, 0, 0, 0);
+  return normalizedDate;
 }
 
 
