@@ -152,6 +152,7 @@ function analyzeCareerStrategy() {
 }
 
 function generateLinkedInCampaign() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const analysis = buildCareerStrategyAnalysis_();
   const totalApplications = analysis.rows.length;
   const bestTag = analysis.cvPerformance.bestTag;
@@ -190,6 +191,7 @@ function generateLinkedInCampaign() {
       "Run /careercoach to show the V3.3-V3.4 intelligence layer: industry mapping, CV performance gap, cold leads, and next move.",
       "Close with the message: I built personal infrastructure to turn execution, positioning, and analytics into one management system."
     ],
+    githubReadmeDraft: generateGitHubREADME(),
     metrics: {
       totalApplications: totalApplications,
       bestCvTag: bestTag ? bestTag.tag : "Not enough data",
@@ -197,9 +199,93 @@ function generateLinkedInCampaign() {
       cvPerformanceGap: cvGap,
       version: SYSTEM_STATE.version,
       phase: SYSTEM_STATE.phase,
-      allowedFeatureScope: VERSION_HISTORY["V3.0-V3.4"]
+      allowedFeatureScope: VERSION_HISTORY["V3.0-V3.4"],
+      spreadsheetUrl: ss.getUrl()
     }
   };
+}
+
+function prepLookerExport() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let lookerSheet = ss.getSheetByName("Looker_Data");
+  const rows = getApplicationDataRows_();
+  const exportRows = rows.map(row => [
+    row.companyName,
+    classifyCareerSector_(row),
+    extractCareerCvTags_(row).join(", "),
+    getCareerStatusLevel_(row.status),
+    row.daysSinceApplied === null ? "" : row.daysSinceApplied
+  ]);
+  const values = [[
+    "Company",
+    "Industry",
+    "CV_Tag",
+    "Status_Level",
+    "Days_Since_Applied"
+  ]].concat(exportRows);
+
+  if (!lookerSheet) {
+    lookerSheet = ss.insertSheet("Looker_Data");
+  }
+
+  lookerSheet.clearContents();
+  lookerSheet
+    .getRange(1, 1, values.length, values[0].length)
+    .setValues(values);
+  lookerSheet.hideSheet();
+
+  writeSystemLog(
+    "Career",
+    "Prep Looker Export",
+    "Success",
+    "Looker_Data refreshed with " + exportRows.length + " rows."
+  );
+
+  return {
+    sheetName: "Looker_Data",
+    rowCount: exportRows.length,
+    spreadsheetUrl: ss.getUrl()
+  };
+}
+
+function generateGitHubREADME() {
+  const analysis = buildCareerStrategyAnalysis_();
+  const bestTag = analysis.cvPerformance.bestTag;
+  const totalApplications = analysis.rows.length;
+  const cvGapText = bestTag
+    ? "The strongest CV tag is " + bestTag.tag + " with a " + bestTag.rate + "% response signal."
+    : "The CV performance layer is ready to surface response gaps once more data is available.";
+
+  return [
+    "# Kemas Personal Productivity OS - V3",
+    "",
+    "## Project Overview",
+    "",
+    "This project is a personal infrastructure system for career execution, built on Google Apps Script, Google Sheets, Telegram, and Gemini API workflows. V3 transforms application tracking from a passive spreadsheet into an agentic operating layer for reliability, mobile execution, and strategic decision support.",
+    "",
+    "## Evolution from V2 to V3",
+    "",
+    "- V2 focused on manual tracking and operational visibility.",
+    "- V3.0-V3.1 introduced Automated Executive Memos and Daily Briefs for reliability and consistency.",
+    "- V3.2 added instant Telegram data entry for zero-friction mobile workflow.",
+    "- V3.3-V3.4 added AI Career Advisor logic, CV performance analysis, industry mapping, evidence packaging, and Looker-ready exports.",
+    "",
+    "## Key Tech Stack (Gemini API, Apps Script)",
+    "",
+    "- Google Apps Script for automation, spreadsheet orchestration, triggers, and Telegram webhook handling.",
+    "- Google Sheets as the operational database for applications, career metrics, and Looker Studio export data.",
+    "- Telegram Bot API for fast mobile data entry, executive memos, and command-based decision support.",
+    "- Gemini API for AI-assisted workflow intelligence and evidence generation.",
+    "- Looker Studio-ready `Looker_Data` sheet for dashboarding and visual proof.",
+    "",
+    "## Real-world Impact (+46 pts CV Gap)",
+    "",
+    "The system manages " + totalApplications + " applications with reduced mental load by surfacing follow-ups, stagnancy, industry concentration, and CV performance signals. " + cvGapText + " The V3.0-V3.4 arc demonstrates Operational Excellence, Management & Marketing thinking, and practical AI Engineering in one working product.",
+    "",
+    "## System Architecture",
+    "",
+    "Telegram commands write and read structured data from Google Sheets. Apps Script modules transform the data into executive memos, career coaching, Looker Studio export tables, and LinkedIn evidence packages. The architecture keeps the workflow lightweight while preserving enough structure for analytics, storytelling, and technical proof."
+  ].join("\n");
 }
 
 function addApplicationFromTelegram(inputString) {
@@ -710,7 +796,7 @@ function analyzeCareerCvPerformance_(rows) {
   const tagStats = {};
 
   rows.forEach(row => {
-    const tags = extractCareerCvTags_(row.cvVersion);
+    const tags = extractCareerCvTags_(row);
     const converted = isCareerConvertedStatus_(row.status);
 
     tags.forEach(tag => {
@@ -748,27 +834,75 @@ function analyzeCareerCvPerformance_(rows) {
   };
 }
 
-function extractCareerCvTags_(cvVersion) {
+function extractCareerCvTags_(applicationOrCvVersion) {
+  const isApplicationObject = applicationOrCvVersion &&
+    typeof applicationOrCvVersion === "object";
+  const cvVersion = isApplicationObject
+    ? applicationOrCvVersion.cvVersion
+    : applicationOrCvVersion;
   const cvText = String(cvVersion || "");
-  const tagPatterns = [
-    { tag: "MT", pattern: /\bmt\b|management trainee/i },
-    { tag: "ODP", pattern: /\bodp\b|officer development/i },
-    { tag: "Data", pattern: /\bdata\b/i },
-    { tag: "Automation", pattern: /automation/i },
-    { tag: "Analyst", pattern: /analyst/i },
-    { tag: "Business", pattern: /business/i }
-  ];
-  const tags = tagPatterns
-    .filter(item => item.pattern.test(cvText))
-    .map(item => item.tag);
+  const cvTextLower = cvText.trim().toLowerCase();
+  const fallbackText = isApplicationObject &&
+    (cvTextLower === "" || cvTextLower === "general")
+    ? String(applicationOrCvVersion.jobTitle || "") + " " + String(applicationOrCvVersion.companyName || "")
+    : "";
+  const directTags = [];
+  const fallbackTags = [];
+
+  if (matchesCareerMtTag_(cvText)) {
+    directTags.push("MT");
+  }
+
+  if (matchesCareerAutomationTag_(cvText)) {
+    directTags.push("Automation");
+  } else if (matchesCareerDataTag_(cvText)) {
+    directTags.push("Data");
+  }
+
+  if (matchesCareerBusinessTag_(cvText) && directTags.indexOf("Data") === -1) {
+    directTags.push("Business");
+  }
+
+  if (fallbackText && matchesCareerMtTag_(fallbackText)) {
+    fallbackTags.push("MT");
+  }
+
+  const tags = directTags.length > 0 ? directTags : fallbackTags;
 
   return tags.length > 0 ? tags : ["General"];
+}
+
+function matchesCareerMtTag_(text) {
+  return /(^|[^a-z])(mt|odp|ulfp|bdp)([^a-z]|$)|management[\s_-]*trainee|officer[\s_-]*development|future[\s_-]*program/i.test(String(text || ""));
+}
+
+function matchesCareerAutomationTag_(text) {
+  return /automation/i.test(String(text || ""));
+}
+
+function matchesCareerDataTag_(text) {
+  return /data|analyst|analytics|(^|[^a-z])bi([^a-z]|$)|business\s*analyst/i.test(String(text || ""));
+}
+
+function matchesCareerBusinessTag_(text) {
+  return /business/i.test(String(text || ""));
 }
 
 function isCareerConvertedStatus_(status) {
   const normalizedStatus = String(status || "").trim().toLowerCase();
 
   return normalizedStatus === "assessment" || normalizedStatus === "interview";
+}
+
+function getCareerStatusLevel_(status) {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+  const levels = {
+    applied: 1,
+    assessment: 2,
+    interview: 3
+  };
+
+  return levels[normalizedStatus] || 0;
 }
 
 function getCareerColdLeads_(rows, limit) {
