@@ -36,6 +36,7 @@ const APPLICATIONS_FU_OPTIONS = ["Yes", "No"];
 const APPLICATIONS_COL = {
   COMPANY_NAME: 0,
   JOB_TITLE: 1,
+  CATEGORY: 2,
   DATE_APPLIED: 3,
   STATUS: 4,
   FU_REQUIRED: 7,
@@ -140,15 +141,22 @@ function analyzeCareerStrategy() {
   return (
     "📊 *AI Career Advisor Memo*\n" +
     "Applications reviewed: " + rows.length + "\n\n" +
+    "*🧭 Funnel Reality Check:*\n" +
+    buildCareerFunnelMemo_(analysis.funnel) +
+    "\n\n" +
     "*📊 Diversification Audit:*\n" +
     buildCareerDiversificationMemo_(analysis.diversification) +
-    "\n\n*💡 CV Insight:*\n" +
+    "\n\n*💡 CV & Positioning Insight:*\n" +
     buildCareerCvInsightMemo_(analysis.cvPerformance) +
-    "\n\n*⏳ Stagnancy Alert:*\n" +
+    "\n\n*⏳ Action Queue:*\n" +
     buildCareerColdLeadMemo_(analysis.coldLeads) +
     "\n\n*🎯 Next Move:*\n" +
     analysis.nextMove
   );
+}
+
+function generateCareerMemo() {
+  return analyzeCareerStrategy();
 }
 
 function generateLinkedInCampaign() {
@@ -209,13 +217,17 @@ function prepLookerExport() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let lookerSheet = ss.getSheetByName("Looker_Data");
   const rows = getApplicationDataRows_();
-  const exportRows = rows.map(row => [
-    row.companyName,
-    classifyCareerSector_(row),
-    extractCareerCvTags_(row).join(", "),
-    getCareerStatusLevel_(row.status),
-    row.daysSinceApplied === null ? "" : row.daysSinceApplied
-  ]);
+  const exportRows = rows.map(row => {
+    const statusLevel = getCareerStatusLevel_(row.status);
+
+    return [
+      row.companyName,
+      classifyCareerSector_(row),
+      extractCareerCvTags_(row).join(", "),
+      statusLevel === null ? "" : statusLevel,
+      row.daysSinceApplied === null ? "" : row.daysSinceApplied
+    ];
+  });
   const values = [[
     "Company",
     "Industry",
@@ -367,11 +379,21 @@ function getApplicationDataRows_() {
   const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
   const headerMap = buildApplicationsHeaderMap_(values[0]);
   const today = normalizeApplicationDate_(new Date());
+  const legacyContextMap = getLegacyApplicationContextMap_(ss, today);
 
   return values
     .slice(1)
     .filter(row => row.some(value => value !== "" && value !== null))
-    .map(row => buildApplicationDataItem_(row, headerMap, today));
+    .map(row => {
+      const item = buildApplicationDataItem_(row, headerMap, today);
+      const legacyContext = legacyContextMap[buildApplicationIdentityKey_(item.companyName, item.jobTitle)];
+
+      if (legacyContext) {
+        item.legacyContext = legacyContext;
+      }
+
+      return item;
+    });
 }
 
 function getCareerFollowUpItems_() {
@@ -403,6 +425,62 @@ function getApplicationsExistingValues_(sheet) {
   }
 
   return sheet.getRange(1, 1, lastRow, lastColumn).getValues();
+}
+
+function getLegacyApplicationContextMap_(ss, today) {
+  const legacySheet = ss.getSheetByName("Copy of Applications");
+  const contextMap = {};
+
+  if (!legacySheet || legacySheet.getLastRow() < 2) {
+    return contextMap;
+  }
+
+  const values = legacySheet
+    .getRange(1, 1, legacySheet.getLastRow(), legacySheet.getLastColumn())
+    .getValues();
+  const headerMap = buildApplicationsHeaderMap_(values[0]);
+
+  values
+    .slice(1)
+    .filter(row => row.some(value => value !== "" && value !== null))
+    .forEach(row => {
+      const companyName = getApplicationField_(row, headerMap, ["Company Name", "Company"], 0) || "";
+      const jobTitle = getApplicationField_(row, headerMap, ["Job Title", "Position"], 1) || "";
+
+      if (!companyName && !jobTitle) {
+        return;
+      }
+
+      const dateApplied = parseApplicationDate_(
+        getApplicationField_(row, headerMap, ["Date Applied", "Date"], 3)
+      );
+      const nextStepDate = parseApplicationDate_(
+        getApplicationField_(row, headerMap, ["Next Step Date", "Target Date"], 9)
+      );
+      const followUpDate = parseApplicationDate_(
+        getApplicationField_(row, headerMap, ["Follow Up Date", "Date FU"], 18)
+      );
+
+      contextMap[buildApplicationIdentityKey_(companyName, jobTitle)] = {
+        salaryRange: getApplicationField_(row, headerMap, ["Salary Range"], 4) || "",
+        location: getApplicationField_(row, headerMap, ["Location"], 5) || "",
+        workMode: getApplicationField_(row, headerMap, ["Work Mode"], 6) || "",
+        source: getApplicationField_(row, headerMap, ["Source"], 13) || "",
+        nextStep: getApplicationField_(row, headerMap, ["Next Step", "Next Action"], 8) || "",
+        nextStepDate: nextStepDate,
+        followUpRequired: getApplicationField_(row, headerMap, ["Follow Up Required?", "FU Required?", "FU"], 17) || "",
+        followUpDate: followUpDate,
+        daysSinceApplied: dateApplied
+          ? Math.floor((today.getTime() - dateApplied.getTime()) / 86400000)
+          : null
+      };
+    });
+
+  return contextMap;
+}
+
+function buildApplicationIdentityKey_(companyName, jobTitle) {
+  return normalizeApplicationsHeader_(companyName) + "|" + normalizeApplicationsHeader_(jobTitle);
 }
 
 function migrateApplicationsRowsToV3_(values) {
@@ -698,6 +776,7 @@ function buildApplicationDataItem_(row, headerMap, today) {
   return {
     companyName: getApplicationField_(row, headerMap, ["Company Name", "Company"], APPLICATIONS_COL.COMPANY_NAME) || "-",
     jobTitle: getApplicationField_(row, headerMap, ["Job Title", "Position"], APPLICATIONS_COL.JOB_TITLE) || "-",
+    category: getApplicationField_(row, headerMap, ["Category", "Industry"], APPLICATIONS_COL.CATEGORY) || "",
     status: String(getApplicationField_(row, headerMap, ["Status"], APPLICATIONS_COL.STATUS) || "").trim().toLowerCase(),
     dateApplied: dateApplied,
     daysSinceApplied: daysSinceApplied,
@@ -709,17 +788,69 @@ function buildApplicationDataItem_(row, headerMap, today) {
 
 function buildCareerStrategyAnalysis_() {
   const rows = getApplicationDataRows_();
+  const funnel = analyzeCareerFunnel_(rows);
   const diversification = analyzeCareerDiversification_(rows);
   const cvPerformance = analyzeCareerCvPerformance_(rows);
-  const coldLeads = getCareerColdLeads_(rows, 3);
+  const coldLeads = getCareerColdLeads_(rows, 5);
 
   return {
     rows: rows,
+    funnel: funnel,
     diversification: diversification,
     cvPerformance: cvPerformance,
     coldLeads: coldLeads,
-    nextMove: buildCareerNextMove_(diversification, cvPerformance, coldLeads)
+    nextMove: buildCareerNextMove_(diversification, cvPerformance, coldLeads, funnel)
   };
+}
+
+function analyzeCareerFunnel_(rows) {
+  const funnel = {
+    total: rows.length,
+    saved: 0,
+    rejected: 0,
+    activeApplied: 0,
+    assessmentStage: 0,
+    interviewStage: 0,
+    eligible: 0
+  };
+
+  rows.forEach(row => {
+    const normalizedStatus = normalizeCareerStatusLabel_(row.status);
+    const statusLevel = getCareerStatusLevel_(row.status);
+
+    if (normalizedStatus === "saved") {
+      funnel.saved++;
+      return;
+    }
+
+    if (normalizedStatus === "rejected") {
+      funnel.rejected++;
+      return;
+    }
+
+    if (statusLevel === null) {
+      return;
+    }
+
+    funnel.eligible++;
+
+    if (statusLevel === 0) {
+      funnel.activeApplied++;
+    }
+
+    if (statusLevel >= 1) {
+      funnel.assessmentStage++;
+    }
+
+    if (statusLevel === 2) {
+      funnel.interviewStage++;
+    }
+  });
+
+  funnel.assessmentRate = calculateApplicationRate_(funnel.assessmentStage, funnel.eligible);
+  funnel.interviewRate = calculateApplicationRate_(funnel.interviewStage, funnel.eligible);
+
+  return funnel;
 }
 
 function analyzeCareerDiversification_(rows) {
@@ -750,14 +881,24 @@ function classifyCareerSector_(application) {
   const company = String(application && application.companyName ? application.companyName : "");
   const jobTitle = String(application && application.jobTitle ? application.jobTitle : "");
   const notes = String(application && application.notes ? application.notes : "");
+  const category = String(application && application.category ? application.category : "");
+  const cvVersion = String(application && application.cvVersion ? application.cvVersion : "");
+  const categoryText = category.trim();
+  const categoryLower = categoryText.toLowerCase();
   const companyText = company.toLowerCase();
-  const contextText = (company + " " + jobTitle + " " + notes).toLowerCase();
+  const cvText = cvVersion.toLowerCase();
+  const contextText = (company + " " + jobTitle + " " + notes + " " + cvVersion).toLowerCase();
 
-  if (/(bank|mandiri|ocbc|idx|fif\s*group|bca|bri|bni|btn|cimb|danamon|permata|maybank|uob|hsbc)/i.test(companyText)) {
+  if (categoryText !== "" && categoryLower !== "other") {
+    return normalizeCareerIndustryName_(categoryText);
+  }
+
+  if (/(bank|mandiri|ocbc|idx|indonesia\s*stock\s*exchange|stock\s*exchange|fif\s*group|bca|bri|bni|btn|cimb|danamon|permata|maybank|uob|hsbc)/i.test(companyText) ||
+      /(^|[^a-z])(odp|bdp|mdp)([^a-z]|$)/i.test(cvText)) {
     return "Banking/Finance";
   }
 
-  if (/(astra|auto2000|toyota|daihatsu|isuzu|honda|mitsubishi|adira)/i.test(companyText)) {
+  if (/(astra|auto2000|toyota|daihatsu|isuzu|honda|mitsubishi|adira|astra\s*credit|\bacc\b)/i.test(companyText)) {
     return "Automotive/Conglomerate";
   }
 
@@ -765,16 +906,29 @@ function classifyCareerSector_(application) {
     return "Consulting/Data";
   }
 
-  if (/(coca[\s-]*cola|map|philip\s*morris|unilever|nestle|indofood|wings|mayora|danone|fmcg|p&g|procter)/i.test(companyText)) {
+  if (/(ccep|coca[\s-]*cola|map|philip\s*morris|philip\s*moris|unilever|ulfp|nestle|indofood|wings|mayora|danone|sampoerna|korea\s*tomorrow|tobacco|fmcg|p&g|procter)/i.test(companyText) ||
+      /(^|[^a-z])(ulfp|ccep)([^a-z]|$)/i.test(cvText)) {
     return "FMCG/Retail";
   }
 
-  if (/(huawei|garena|jakarta\s*digital\s*nusantara|siemens|telkom|gojek|tokopedia|shopee|grab|traveloka|bukalapak|tech|digital)/i.test(companyText)) {
+  if (/garena/i.test(companyText)) {
+    return "Tech/Gaming";
+  }
+
+  if (/(huawei|huawe|jakarta\s*digital\s*nusantara|siemens|telkom|gojek|tokopedia|shopee|grab|traveloka|bukalapak|tech|digital)/i.test(companyText)) {
     return "Tech/Digital";
   }
 
   if (/(transjakarta|deliveree|logistics|transport|shipping|supply\s*chain|warehouse)/i.test(companyText)) {
     return "Logistics/Transport";
+  }
+
+  if (/(tower\s*bersama|\btbg\b|telecom|telecommunication|infrastructure)/i.test(contextText)) {
+    return "Telecom/Infrastructure";
+  }
+
+  if (/(eterna|manufacturing|factory|industrial|consumer\s*goods)/i.test(contextText)) {
+    return "Manufacturing/Consumer Goods";
   }
 
   if (/(analyst|analytics|data|business\s*intelligence|bi\b)/i.test(contextText)) {
@@ -792,26 +946,71 @@ function classifyCareerSector_(application) {
   return "Other";
 }
 
+function normalizeCareerIndustryName_(industry) {
+  const normalizedIndustry = String(industry || "").trim();
+  const lowerIndustry = normalizedIndustry.toLowerCase();
+
+  if (/bank|finance|financial|idx|ocbc|fif/i.test(lowerIndustry)) {
+    return "Banking/Finance";
+  }
+
+  if (/fmcg|retail|consumer|unilever|coca|ccep|map/i.test(lowerIndustry)) {
+    return "FMCG/Retail";
+  }
+
+  if (/gaming/i.test(lowerIndustry)) {
+    return "Tech/Gaming";
+  }
+
+  if (/tech|digital|software|it/i.test(lowerIndustry)) {
+    return "Tech/Digital";
+  }
+
+  if (/telecom|telecommunication|tower|infrastructure|tbg/i.test(lowerIndustry)) {
+    return "Telecom/Infrastructure";
+  }
+
+  if (/auto|automotive|conglomerate|astra/i.test(lowerIndustry)) {
+    return "Automotive/Conglomerate";
+  }
+
+  if (/manufacturing|factory|industrial|consumer goods/i.test(lowerIndustry)) {
+    return "Manufacturing/Consumer Goods";
+  }
+
+  if (/consult|data|analytics|research/i.test(lowerIndustry)) {
+    return "Consulting/Data";
+  }
+
+  if (/logistic|transport|delivery|supply/i.test(lowerIndustry)) {
+    return "Logistics/Transport";
+  }
+
+  return normalizedIndustry;
+}
+
 function analyzeCareerCvPerformance_(rows) {
   const tagStats = {};
 
-  rows.forEach(row => {
+  rows
+    .filter(row => isCareerCvPerformanceEligible_(row.status))
+    .forEach(row => {
     const tags = extractCareerCvTags_(row);
-    const converted = isCareerConvertedStatus_(row.status);
+    const reachedAssessmentStage = hasReachedCareerAssessmentStage_(row.status);
 
     tags.forEach(tag => {
       if (!tagStats[tag]) {
         tagStats[tag] = {
           tag: tag,
           total: 0,
-          converted: 0
+          assessmentStage: 0
         };
       }
 
       tagStats[tag].total++;
 
-      if (converted) {
-        tagStats[tag].converted++;
+      if (reachedAssessmentStage) {
+        tagStats[tag].assessmentStage++;
       }
     });
   });
@@ -820,10 +1019,10 @@ function analyzeCareerCvPerformance_(rows) {
     .map(tag => ({
       tag: tag,
       total: tagStats[tag].total,
-      converted: tagStats[tag].converted,
+      assessmentStage: tagStats[tag].assessmentStage,
       rate: tagStats[tag].total === 0
         ? 0
-        : Math.round((tagStats[tag].converted / tagStats[tag].total) * 100)
+        : Math.round((tagStats[tag].assessmentStage / tagStats[tag].total) * 100)
     }))
     .sort((a, b) => b.rate - a.rate || b.total - a.total || a.tag.localeCompare(b.tag));
 
@@ -873,7 +1072,7 @@ function extractCareerCvTags_(applicationOrCvVersion) {
 }
 
 function matchesCareerMtTag_(text) {
-  return /(^|[^a-z])(mt|odp|ulfp|bdp)([^a-z]|$)|management[\s_-]*trainee|officer[\s_-]*development|future[\s_-]*program/i.test(String(text || ""));
+  return /(^|[^a-z])(mt|odp|ulfp|bdp|mdp|gtp)([^a-z]|$)|management[\s_-]*trainee|officer[\s_-]*development|future[\s_-]*program|global[\s_-]*trainee[\s_-]*program/i.test(String(text || ""));
 }
 
 function matchesCareerAutomationTag_(text) {
@@ -888,35 +1087,58 @@ function matchesCareerBusinessTag_(text) {
   return /business/i.test(String(text || ""));
 }
 
-function isCareerConvertedStatus_(status) {
-  const normalizedStatus = String(status || "").trim().toLowerCase();
+function isCareerCvPerformanceEligible_(status) {
+  const normalizedStatus = normalizeCareerStatusLabel_(status);
 
-  return normalizedStatus === "assessment" || normalizedStatus === "interview";
+  return normalizedStatus !== "saved" &&
+    normalizedStatus !== "rejected" &&
+    getCareerStatusLevel_(status) !== null;
+}
+
+function hasReachedCareerAssessmentStage_(status) {
+  const statusLevel = getCareerStatusLevel_(status);
+
+  return statusLevel === 1 || statusLevel === 2;
 }
 
 function getCareerStatusLevel_(status) {
-  const normalizedStatus = String(status || "").trim().toLowerCase();
-  const levels = {
-    applied: 1,
-    assessment: 2,
-    interview: 3
-  };
+  const normalizedStatus = normalizeCareerStatusLabel_(status);
 
-  return levels[normalizedStatus] || 0;
+  if (normalizedStatus === "applied" || normalizedStatus === "in review") {
+    return 0;
+  }
+
+  if (normalizedStatus === "assessment" || normalizedStatus === "online test") {
+    return 1;
+  }
+
+  if (normalizedStatus === "interview" ||
+      (/interview/.test(normalizedStatus) && /(user|hr|final)/.test(normalizedStatus))) {
+    return 2;
+  }
+
+  return null;
+}
+
+function normalizeCareerStatusLabel_(status) {
+  return String(status || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 function getCareerColdLeads_(rows, limit) {
   return rows
     .filter(row =>
-      row.status === "applied" &&
+      getCareerStatusLevel_(row.status) === 0 &&
       row.daysSinceApplied !== null &&
       row.daysSinceApplied >= 7
     )
     .map(row => ({
       companyName: row.companyName,
       jobTitle: row.jobTitle,
+      sector: classifyCareerSector_(row),
+      cvTags: extractCareerCvTags_(row),
       daysSinceApplied: row.daysSinceApplied,
-      zone: row.daysSinceApplied > 14 ? "Red Zone" : "Yellow Zone"
+      zone: row.daysSinceApplied > 14 ? "Red Zone" : "Yellow Zone",
+      legacyContext: row.legacyContext || null
     }))
     .sort((a, b) => b.daysSinceApplied - a.daysSinceApplied)
     .slice(0, limit || 3);
@@ -940,17 +1162,44 @@ function buildCareerDiversificationMemo_(analysis) {
   return topSectors + concentrationText;
 }
 
+function buildCareerFunnelMemo_(funnel) {
+  const interviewText = funnel.interviewStage === 0
+    ? "No interview-stage signal yet. Current movement is Assessment Stage only."
+    : "Interview Stage: " + funnel.interviewStage + " (" + funnel.interviewRate + "%).";
+
+  return (
+    "Tracked: " + funnel.total + " total | " +
+    funnel.eligible + " active funnel | " +
+    funnel.rejected + " rejected | " +
+    funnel.saved + " saved.\n" +
+    "Applied/In Review: " + funnel.activeApplied + "\n" +
+    "Assessment Stage: " + funnel.assessmentStage + " (" + funnel.assessmentRate + "% of active funnel)\n" +
+    interviewText
+  );
+}
+
 function buildCareerCvInsightMemo_(analysis) {
   if (!analysis.bestTag) {
     return "No CV version signal detected yet. Start labeling CV Version with tags like Data, Automation, Analyst, MT, or ODP.";
   }
 
+  const topTags = analysis.tags
+    .slice(0, 3)
+    .map(item =>
+      "- " + escapeTelegramMarkdown(item.tag) + ": " +
+      item.assessmentStage + "/" + item.total +
+      " reached Assessment Stage (" + item.rate + "%)"
+    )
+    .join("\n");
+  const sampleWarning = analysis.bestTag.total < 3
+    ? "\nSignal quality: promising, but sample size is still small. Validate with more applications before overcommitting."
+    : "\nSignal quality: enough to guide the next application batch.";
   const bestTagText = (
     escapeTelegramMarkdown(analysis.bestTag.tag) +
-    " is currently strongest: " +
-    analysis.bestTag.converted + "/" +
+    " is currently strongest for Assessment Stage: " +
+    analysis.bestTag.assessmentStage + "/" +
     analysis.bestTag.total +
-    " converted (" +
+    " reached Assessment/Interview stage (" +
     analysis.bestTag.rate +
     "%)."
   );
@@ -959,16 +1208,16 @@ function buildCareerCvInsightMemo_(analysis) {
     const delta = analysis.bestTag.rate - analysis.baselineTag.rate;
 
     if (delta > 0) {
-      return bestTagText + "\nThis is +" + delta + " pts above General CVs.";
+      return bestTagText + "\nThis is +" + delta + " pts above General CVs.\n\n*Top CV Signals:*\n" + topTags + sampleWarning;
     }
   }
 
-  return bestTagText;
+  return bestTagText + "\n\n*Top CV Signals:*\n" + topTags + sampleWarning;
 }
 
 function buildCareerColdLeadMemo_(coldLeads) {
   if (coldLeads.length === 0) {
-    return "No cold leads older than 7 days in Applied status.";
+    return "No cold leads older than 7 days in Applied/In Review status.";
   }
 
   return coldLeads.map(item =>
@@ -977,13 +1226,62 @@ function buildCareerColdLeadMemo_(coldLeads) {
     " | " +
     escapeTelegramMarkdown(item.jobTitle) +
     " | " +
+    escapeTelegramMarkdown(item.sector) +
+    " | CV: " +
+    escapeTelegramMarkdown(item.cvTags.join(", ")) +
+    " | " +
     item.daysSinceApplied +
     " days | " +
-    item.zone
+    item.zone +
+    buildCareerColdLeadContext_(item)
   ).join("\n");
 }
 
-function buildCareerNextMove_(diversification, cvPerformance, coldLeads) {
+function buildCareerColdLeadContext_(item) {
+  const context = item.legacyContext;
+
+  if (!context) {
+    return "";
+  }
+
+  const details = [];
+
+  if (context.source) {
+    details.push("source: " + context.source);
+  }
+
+  if (context.workMode) {
+    details.push("mode: " + context.workMode);
+  }
+
+  if (context.nextStep) {
+    details.push("next: " + context.nextStep);
+  }
+
+  if (details.length === 0) {
+    return "";
+  }
+
+  return " (" + escapeTelegramMarkdown(details.join(", ")) + ")";
+}
+
+function buildCareerNextMove_(diversification, cvPerformance, coldLeads, funnel) {
+  const automationSignal = cvPerformance.tags.filter(item => item.tag === "Automation")[0];
+
+  if (automationSignal && automationSignal.assessmentStage > 0 && automationSignal.total < 5) {
+    return (
+      "Scale the strongest evidence: send 3-5 more Data/Automation or BI Analyst applications this week. " +
+      "Automation has reached Assessment Stage, but the sample is still too small to conclude."
+    );
+  }
+
+  if (funnel && funnel.interviewStage === 0 && funnel.assessmentStage > 0) {
+    return (
+      "Treat the next goal as Assessment-to-Interview conversion, not more raw applications. " +
+      "Prepare interview stories for the companies already in Assessment Stage while maintaining 1-2 high-fit applications per day."
+    );
+  }
+
   if (diversification.isConcentrated && diversification.dominantSector) {
     return (
       "You have " +
