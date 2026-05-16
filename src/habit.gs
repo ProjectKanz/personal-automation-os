@@ -56,12 +56,12 @@ function onEdit(e) {
     if (!(tglDashboard instanceof Date)) return;
    
     const dbData = dbSheet.getDataRange().getValues();
-    const tglTime = tglDashboard.getTime();
+    const tglTime = normalizeDateOnly_(tglDashboard).getTime();
 
 
     for (let i = 1; i < dbData.length; i++) {
       if (dbData[i][0] instanceof Date &&
-          dbData[i][0].getTime() === tglTime &&
+          normalizeDateOnly_(dbData[i][0]).getTime() === tglTime &&
           dbData[i][2] === aktDashboard) {
         dbSheet.getRange(i + 1, 4).setValue(valBaru);
         break;
@@ -120,22 +120,46 @@ function logDailyToDB() {
   }
 
 
-  // 4. Hapus data lama di Daily_DB untuk tanggal yang sama (Anti-Duplikat)
-  const dbData = dbSheet.getDataRange().getValues();
-  for (let i = dbData.length - 1; i >= 1; i--) {
-    if (dbData[i][0] instanceof Date && normalizeDateOnly_(dbData[i][0]).getTime() === targetDate.getTime()) {
-      dbSheet.deleteRow(i + 1);
-    }
-  }
+  // 4. Upsert ke Daily_DB tanpa menghapus riwayat checklist yang sudah tersimpan.
+  const existingRowsByActivity = getDailyDbRowsByActivity_(dbSheet, targetDate);
+  const rowsToAppend = [];
 
-
-  // 5. Masukkan data habit ke Daily_DB
   rowsToSave.forEach(row => {
-    dbSheet.appendRow([targetDate, row.kategori, row.aktivitas, row.status, row.note]);
+    const existing = existingRowsByActivity[row.aktivitas];
+
+    if (existing) {
+      const savedStatus = existing.values[3] === true;
+      const dashboardStatus = row.status === true;
+      const savedNote = existing.values[4] ? existing.values[4].toString().trim() : "";
+      const dashboardNote = row.note ? row.note.toString().trim() : "";
+
+      dbSheet
+        .getRange(existing.rowIndex, 1, 1, 5)
+        .setValues([[
+          targetDate,
+          row.kategori,
+          row.aktivitas,
+          savedStatus || dashboardStatus,
+          dashboardNote || savedNote
+        ]]);
+      dbSheet.getRange(existing.rowIndex, 4).insertCheckboxes();
+      return;
+    }
+
+    rowsToAppend.push([targetDate, row.kategori, row.aktivitas, row.status === true, row.note || ""]);
   });
 
+  if (rowsToAppend.length > 0) {
+    const startRow = dbSheet.getLastRow() + 1;
+    dbSheet
+      .getRange(startRow, 1, rowsToAppend.length, 5)
+      .setValues(rowsToAppend);
+    dbSheet
+      .getRange(startRow, 4, rowsToAppend.length, 1)
+      .insertCheckboxes();
+  }
 
-  const message = "Sinkronisasi Selesai! Data tanggal " + targetDateString + " sudah masuk ke Daily_DB.";
+  const message = "Sinkronisasi Selesai! Data tanggal " + targetDateString + " sudah di-upsert ke Daily_DB tanpa menghapus checklist lama.";
   console.log(message);
   writeSystemLog("Habit", "Log Daily To DB", "Success", message);
 }
@@ -145,6 +169,32 @@ function normalizeDateOnly_(dateValue) {
   const normalizedDate = new Date(dateValue);
   normalizedDate.setHours(0, 0, 0, 0);
   return normalizedDate;
+}
+
+
+function getDailyDbRowsByActivity_(dbSheet, targetDate) {
+  const targetTime = normalizeDateOnly_(targetDate).getTime();
+  const dbData = dbSheet.getDataRange().getValues();
+  const rowsByActivity = {};
+
+
+  for (let i = 1; i < dbData.length; i++) {
+    const rowDate = dbData[i][0];
+    const activity = dbData[i][2];
+
+
+    if (!(rowDate instanceof Date) || !activity) continue;
+    if (normalizeDateOnly_(rowDate).getTime() !== targetTime) continue;
+
+
+    rowsByActivity[activity] = {
+      rowIndex: i + 1,
+      values: dbData[i]
+    };
+  }
+
+
+  return rowsByActivity;
 }
 
 

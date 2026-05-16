@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        --bg: #111226;
+        --panel: #202042;
+        --panel-2: #2d2a58;
+        --panel-3: #3a3467;
+        --line: rgba(255, 255, 255, 0.1);
+        --text: #f5f7ff;
+        --muted: #aeb5d8;
+        --cyan: #22d8e8;
+        --pink: #ff4ac7;
+        --violet: #8f5dff;
+        --green: #5df2a1;
+        --amber: #ffd166;
+        --red: #ff6b7a;
+        --shadow: 0 24px 80px rgba(16, 12, 42, 0.48);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(143, 93, 255, 0.38), transparent 34rem),
+          radial-gradient(circle at bottom right, rgba(34, 216, 232, 0.18), transparent 32rem),
+          linear-gradient(135deg, #8a63dd 0%, #b77ee8 42%, #181936 42%, #121326 100%);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1180px, calc(100vw - 28px));
+        min-height: calc(100vh - 48px);
+        margin: 24px auto;
+        display: grid;
+        grid-template-columns: 72px 220px minmax(0, 1fr) 280px;
+        background: rgba(18, 19, 44, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .rail {
+        background: #181633;
+        border-right: 1px solid var(--line);
+        padding: 14px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-dot {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 800;
+        background: conic-gradient(from 210deg, var(--pink), var(--violet), var(--cyan), var(--pink));
+        box-shadow: 0 0 28px rgba(255, 74, 199, 0.45);
+      }
+
+      .rail-button {
+        width: 42px;
+        height: 42px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+        background: #242245;
+        color: var(--muted);
+        display: grid;
+        place-items: center;
+      }
+
+      .rail-button.active {
+        color: #fff;
+        background: linear-gradient(145deg, #25c9e6, #8d58ff 54%, #f34fc3);
+      }
+
+      .side {
+        background: rgba(59, 50, 103, 0.76);
+        padding: 18px 12px;
+        border-right: 1px solid var(--line);
+      }
+
+      .section-label {
+        color: #dfe5ff;
+        font-size: 12px;
+        font-weight: 700;
+        margin: 0 0 12px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav-item {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 10px;
+        border-radius: 6px;
+        color: #d7dcfb;
+        font-size: 13px;
+      }
+
+      .nav-item.active {
+        background: rgba(255, 255, 255, 0.11);
+        color: #fff;
+      }
+
+      .main {
+        min-width: 0;
+        padding: 16px 18px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .search {
+        height: 34px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #181936;
+        color: var(--muted);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 12px;
+      }
+
+      .open-link {
+        color: #fff;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        padding: 8px 11px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .hero {
+        min-height: 140px;
+        border-radius: 10px;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        align-content: center;
+        background:
+          linear-gradient(110deg, rgba(31, 33, 74, 0.88), rgba(41, 35, 88, 0.7)),
+          radial-gradient(circle at 80% 28%, rgba(34, 216, 232, 0.8), transparent 19rem),
+          radial-gradient(circle at 34% 20%, rgba(255, 74, 199, 0.74), transparent 14rem),
+          linear-gradient(135deg, #242449, #181936);
+      }
+
+      .hero:before,
+      .hero:after {
+        content: "";
+        position: absolute;
+        border-radius: 24px;
+        transform: rotate(-18deg);
+        opacity: 0.85;
+      }
+
+      .hero:before {
+        width: 118px;
+        height: 84px;
+        right: 120px;
+        top: 28px;
+        background: linear-gradient(135deg, var(--cyan), rgba(255, 255, 255, 0.12));
+      }
+
+      .hero:after {
+        width: 92px;
+        height: 92px;
+        right: 44px;
+        top: 24px;
+        background: linear-gradient(135deg, var(--pink), var(--violet));
+        border-radius: 50%;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 460px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .sub {
+        margin: 8px 0 0;
+        color: #d7dcfb;
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .panel {
+        min-width: 0;
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(53, 49, 98, 0.96), rgba(35, 34, 70, 0.96));
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        padding: 14px;
+        box-shadow: 0 16px 42px rgba(5, 5, 18, 0.22);
+      }
+
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+
+      .mini {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .metric {
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .metric-row {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .progress {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.11);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+
+      .progress span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .list-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 42px;
+        padding: 9px 10px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 7px;
+      }
+
+      .item-main {
+        min-width: 0;
+      }
+
+      .item-title {
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .item-sub {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .tag {
+        border-radius: 999px;
+        padding: 4px 8px;
+        color: #fff;
+        background: rgba(34, 216, 232, 0.18);
+        border: 1px solid rgba(34, 216, 232, 0.28);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .tag.pink {
+        background: rgba(255, 74, 199, 0.16);
+        border-color: rgba(255, 74, 199, 0.28);
+      }
+
+      .tag.green {
+        background: rgba(93, 242, 161, 0.16);
+        border-color: rgba(93, 242, 161, 0.28);
+      }
+
+      .wide {
+        grid-column: span 2;
+      }
+
+      .right {
+        background: rgba(26, 26, 57, 0.92);
+        border-left: 1px solid var(--line);
+        padding: 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .profile {
+        text-align: center;
+        padding: 10px 4px 4px;
+      }
+
+      .avatar {
+        width: 86px;
+        height: 86px;
+        margin: 0 auto 10px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 28px;
+        font-weight: 900;
+        background:
+          linear-gradient(#191a38, #191a38) padding-box,
+          conic-gradient(var(--cyan), var(--violet), var(--pink), var(--cyan)) border-box;
+        border: 3px solid transparent;
+        box-shadow: 0 0 42px rgba(34, 216, 232, 0.22);
+      }
+
+      .profile-name {
+        font-weight: 800;
+        font-size: 14px;
+      }
+
+      .profile-sub {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 3px;
+      }
+
+      .sector-bar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .sector-track {
+        height: 7px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+
+      .sector-track span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--amber), var(--pink));
+      }
+
+      .empty {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 7px;
+      }
+
+      .audit-text {
+        color: #d8dcfb;
+        font-size: 12px;
+        line-height: 1.5;
+        max-height: 220px;
+        overflow: hidden;
+        white-space: pre-wrap;
+      }
+
+      .loading {
+        min-height: 60vh;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 700;
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 64px minmax(0, 1fr);
+        }
+
+        .side,
+        .right {
+          display: none;
+        }
+
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          background: #121326;
+        }
+
+        .shell {
+          width: 100vw;
+          min-height: 100vh;
+          margin: 0;
+          border: 0;
+          border-radius: 0;
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          display: none;
+        }
+
+        .main {
+          padding: 14px;
+        }
+
+        .topbar {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: 132px;
+          padding: 18px;
+        }
+
+        .hero:before,
+        .hero:after {
+          opacity: 0.5;
+        }
+
+        h1 {
+          font-size: 24px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .wide {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="loading">Loading dashboard...</div>
+
+    <script>
+      const app = document.getElementById("app");
+
+      const loadTimer = window.setTimeout(() => {
+        renderError({
+          message: "Dashboard data request timed out. Refresh once; if it keeps happening, the Apps Script data function needs attention."
+        });
+      }, 25000);
+
+      google.script.run
+        .withSuccessHandler(renderDashboard)
+        .withFailureHandler(renderError)
+        .getWebDashboardData();
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function renderDashboard(data) {
+        window.clearTimeout(loadTimer);
+        const habit = data.habit || {};
+        const career = data.career || {};
+        const trading = data.trading || {};
+        const audit = data.audit || {};
+
+        app.className = "shell";
+        app.innerHTML = `
+          <aside class="rail">
+            <div class="brand-dot">K</div>
+            <div class="rail-button active">⌂</div>
+            <div class="rail-button">◈</div>
+            <div class="rail-button">◌</div>
+            <div class="rail-button">＋</div>
+          </aside>
+
+          <aside class="side">
+            <p class="section-label">Explore</p>
+            <nav class="nav">
+              <div class="nav-item active"><span>⌂</span><span>Home</span></div>
+              <div class="nav-item"><span>✓</span><span>Habit</span></div>
+              <div class="nav-item"><span>↗</span><span>Career</span></div>
+              <div class="nav-item"><span>◇</span><span>Trading</span></div>
+              <div class="nav-item"><span>✦</span><span>AI Audit</span></div>
+            </nav>
+          </aside>
+
+          <main class="main">
+            <div class="topbar">
+              <div class="search">Personal Productivity OS · ${escapeHtml(data.generatedAt)}</div>
+              <a class="open-link" href="${escapeHtml(data.spreadsheetUrl)}" target="_blank">Open Sheet</a>
+            </div>
+
+            <section class="hero">
+              <div class="hero-content">
+                <h1>Kanzan Command Center</h1>
+                <p class="sub">Daily execution, career pipeline, trading log, and AI audit in one operating view.</p>
+              </div>
+            </section>
+
+            <section class="grid">
+              ${metricPanel("Today's Habits", `${habit.done || 0}/${habit.total || 0}`, `${habit.percentage || 0}% complete`, habit.percentage || 0)}
+              ${metricPanel("Weekly Rhythm", `${habit.weeklyDone || 0}/${habit.weeklyTotal || 0}`, `${habit.weeklyPercentage || 0}% last 7 days`, habit.weeklyPercentage || 0)}
+              ${metricPanel("Career Pipeline", career.totalApplications || 0, `${career.followUpsDue || 0} follow-ups due`, Math.min(100, career.totalApplications || 0))}
+
+              <article class="panel wide">
+                <div class="panel-title">
+                  <h2>Open Habits</h2>
+                  <span class="mini">${habit.notesCount || 0} notes today</span>
+                </div>
+                <div class="list">
+                  ${renderHabitList(habit.missing)}
+                </div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-title">
+                  <h2>Trading</h2>
+                  <span class="tag green">${trading.winRate || 0}% WR</span>
+                </div>
+                <div class="metric-row">
+                  <div>
+                    <div class="metric">${trading.closedTrades || 0}</div>
+                    <div class="mini">${trading.wins || 0} wins · ${trading.losses || 0} losses</div>
+                  </div>
+                </div>
+                <div class="progress"><span style="width:${Math.min(100, trading.winRate || 0)}%"></span></div>
+              </article>
+
+              <article class="panel wide">
+                <div class="panel-title">
+                  <h2>Recent Applications</h2>
+                  <span class="mini">${career.interviewPipeline || 0} interviews</span>
+                </div>
+                <div class="list">
+                  ${renderApplications(career.recent)}
+                </div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-title">
+                  <h2>Recent Trades</h2>
+                  <span class="mini">7 days</span>
+                </div>
+                <div class="list">
+                  ${renderTrades(trading.recent)}
+                </div>
+              </article>
+            </section>
+          </main>
+
+          <aside class="right">
+            <div class="profile">
+              <div class="avatar">OS</div>
+              <div class="profile-name">Kemas Operator</div>
+              <div class="profile-sub">V3.4 · Agentic AI</div>
+            </div>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h2>Career Mix</h2>
+                <span class="mini">${career.successRate || 0}% offer</span>
+              </div>
+              <div class="list">
+                ${renderSectors(career.sectors)}
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h2>Latest Audit</h2>
+                <span class="tag pink">Row ${audit.row || "-"}</span>
+              </div>
+              <div class="audit-text">${escapeHtml(audit.preview || "No audit available yet.")}</div>
+            </article>
+          </aside>
+        `;
+      }
+
+      function metricPanel(title, value, caption, percent) {
+        return `
+          <article class="panel">
+            <div class="panel-title">
+              <h2>${escapeHtml(title)}</h2>
+              <span class="mini">Live</span>
+            </div>
+            <div class="metric-row">
+              <div>
+                <div class="metric">${escapeHtml(value)}</div>
+                <div class="mini">${escapeHtml(caption)}</div>
+              </div>
+            </div>
+            <div class="progress"><span style="width:${Math.min(100, Number(percent) || 0)}%"></span></div>
+          </article>
+        `;
+      }
+
+      function renderHabitList(items) {
+        if (!items || items.length === 0) {
+          return `<div class="empty">All habits are clear for today.</div>`;
+        }
+
+        return items.slice(0, 6).map(item => `
+          <div class="list-item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.activity)}</div>
+              <div class="item-sub">${escapeHtml(item.category)}</div>
+            </div>
+            <span class="tag pink">Open</span>
+          </div>
+        `).join("");
+      }
+
+      function renderApplications(items) {
+        if (!items || items.length === 0) {
+          return `<div class="empty">No application rows found yet.</div>`;
+        }
+
+        return items.map(item => `
+          <div class="list-item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.companyName)}</div>
+              <div class="item-sub">${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category)}</div>
+            </div>
+            <span class="tag">${escapeHtml(item.status)}</span>
+          </div>
+        `).join("");
+      }
+
+      function renderTrades(items) {
+        if (!items || items.length === 0) {
+          return `<div class="empty">No closed trades this week.</div>`;
+        }
+
+        return items.map(item => `
+          <div class="list-item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.symbol)} ${escapeHtml(item.side)}</div>
+              <div class="item-sub">${escapeHtml(item.exitDate)} · ${escapeHtml(item.remarks)}</div>
+            </div>
+            <span class="tag ${item.outcome === "Win" ? "green" : "pink"}">${escapeHtml(item.outcome)}</span>
+          </div>
+        `).join("");
+      }
+
+      function renderSectors(items) {
+        if (!items || items.length === 0) {
+          return `<div class="empty">No sector signal yet.</div>`;
+        }
+
+        const max = Math.max(...items.map(item => item.count), 1);
+        return items.map(item => `
+          <div>
+            <div class="sector-bar">
+              <span>${escapeHtml(item.label)}</span>
+              <strong>${escapeHtml(item.count)}</strong>
+            </div>
+            <div class="sector-track"><span style="width:${Math.max(8, (item.count / max) * 100)}%"></span></div>
+          </div>
+        `).join("");
+      }
+
+      function renderError(error) {
+        window.clearTimeout(loadTimer);
+        app.className = "loading";
+        app.innerHTML = `Dashboard failed to load: ${escapeHtml(error && error.message ? error.message : error)}`;
+      }
+    </script>
+  </body>
+</html>
