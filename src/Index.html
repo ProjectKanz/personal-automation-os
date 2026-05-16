@@ -247,6 +247,7 @@
       }
 
       .action-button,
+      .item-action,
       .open-link {
         min-height: 42px;
         padding: 0 15px;
@@ -263,6 +264,7 @@
       }
 
       .action-button:hover,
+      .item-action:hover,
       .open-link:hover {
         background: rgba(255, 255, 255, 0.13);
       }
@@ -450,6 +452,11 @@
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
+      .list-item.habit-editor {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+      }
+
       .list-item:hover {
         border-color: rgba(255, 255, 255, 0.16);
         background: rgba(255, 255, 255, 0.085);
@@ -474,6 +481,41 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .item-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .note-input {
+        width: 100%;
+        min-height: 38px;
+        color: var(--ink);
+        background: rgba(13, 15, 40, 0.62);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 0 10px;
+        outline: none;
+      }
+
+      .note-input:focus {
+        border-color: rgba(32, 216, 232, 0.48);
+        box-shadow: 0 0 0 3px rgba(32, 216, 232, 0.09);
+      }
+
+      .item-action {
+        min-height: 38px;
+        border-radius: 7px;
+        padding: 0 11px;
+      }
+
+      .item-action[disabled],
+      .action-button[disabled] {
+        cursor: wait;
+        opacity: 0.62;
       }
 
       .tag {
@@ -582,6 +624,29 @@
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 8px;
         font-size: 13px;
+      }
+
+      .toast {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 20;
+        max-width: min(380px, calc(100vw - 28px));
+        padding: 13px 15px;
+        color: #fff;
+        background: rgba(22, 23, 51, 0.96);
+        border: 1px solid var(--line-strong);
+        border-radius: 9px;
+        box-shadow: 0 18px 54px rgba(4, 5, 18, 0.36);
+        font-size: 13px;
+      }
+
+      .toast.success {
+        border-color: rgba(99, 237, 168, 0.35);
+      }
+
+      .toast.error {
+        border-color: rgba(255, 107, 122, 0.42);
       }
 
       .mobile-tabs {
@@ -703,6 +768,10 @@
         .item-sub {
           white-space: normal;
         }
+
+        .item-controls {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -726,6 +795,8 @@
       let dashboardData = null;
       let activeView = "home";
       let loadTimer = null;
+      let busyAction = false;
+      let toastTimer = null;
 
       loadDashboard();
 
@@ -941,14 +1012,14 @@
                 <h3>Open Habits</h3>
                 <span class="tag pink">${(habit.missing || []).length} open</span>
               </div>
-              <div class="list scroll">${renderHabitList(habit.missing, 20, "Open")}</div>
+              <div class="list scroll">${renderHabitEditorList(habit.missing, false)}</div>
             </article>
             <article class="panel">
               <div class="panel-title">
                 <h3>Completed</h3>
                 <span class="tag green">${(habit.completed || []).length} done</span>
               </div>
-              <div class="list scroll">${renderHabitList(habit.completed, 20, "Done", "green")}</div>
+              <div class="list scroll">${renderHabitEditorList(habit.completed, true)}</div>
             </article>
           </section>
         `;
@@ -1081,6 +1152,32 @@
         `).join("");
       }
 
+      function renderHabitEditorList(items, isDone) {
+        if (!items || items.length === 0) {
+          return `<div class="empty">No habit records in this state.</div>`;
+        }
+
+        return items.map(item => {
+          const encodedActivity = encodeURIComponent(item.activity || "");
+          const nextDone = isDone ? "false" : "true";
+          const actionLabel = isDone ? "Reopen" : "Done";
+
+          return `
+            <div class="list-item habit-editor">
+              <div class="item-main">
+                <div class="item-title">${escapeHtml(item.activity)}</div>
+                <div class="item-sub">${escapeHtml(item.category)}${item.note ? " · " + escapeHtml(item.note) : ""}</div>
+                <div class="item-controls">
+                  <input class="note-input" value="${escapeHtml(item.note || "")}" placeholder="Add note or reason" data-note-input="${encodedActivity}">
+                  <button class="item-action" data-note-save="${encodedActivity}">Save note</button>
+                  <button class="item-action" data-status-action="${encodedActivity}" data-next-done="${nextDone}">${actionLabel}</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
       function renderApplications(items) {
         if (!items || items.length === 0) {
           return `<div class="empty">No application rows found yet.</div>`;
@@ -1155,6 +1252,80 @@
         if (refresh) {
           refresh.addEventListener("click", loadDashboard);
         }
+
+        app.querySelectorAll("[data-status-action]").forEach(button => {
+          button.addEventListener("click", () => {
+            const activity = decodeURIComponent(button.getAttribute("data-status-action") || "");
+            const nextDone = button.getAttribute("data-next-done") === "true";
+            updateHabitStatus(activity, nextDone);
+          });
+        });
+
+        app.querySelectorAll("[data-note-save]").forEach(button => {
+          button.addEventListener("click", () => {
+            const activity = decodeURIComponent(button.getAttribute("data-note-save") || "");
+            const input = app.querySelector(`[data-note-input="${button.getAttribute("data-note-save")}"]`);
+            updateHabitNote(activity, input ? input.value : "");
+          });
+        });
+      }
+
+      function setActionBusy(isBusy) {
+        busyAction = isBusy;
+        app.querySelectorAll("[data-status-action], [data-note-save], [data-refresh]").forEach(button => {
+          button.disabled = isBusy;
+        });
+      }
+
+      function updateHabitStatus(activity, nextDone) {
+        if (busyAction) return;
+        setActionBusy(true);
+
+        google.script.run
+          .withSuccessHandler(data => {
+            dashboardData = data || {};
+            setActionBusy(false);
+            showToast(nextDone ? "Habit marked done." : "Habit reopened.", "success");
+            renderShell();
+          })
+          .withFailureHandler(error => {
+            setActionBusy(false);
+            showToast(error && error.message ? error.message : error, "error");
+          })
+          .updateWebHabitStatus(activity, nextDone);
+      }
+
+      function updateHabitNote(activity, note) {
+        if (busyAction) return;
+        setActionBusy(true);
+
+        google.script.run
+          .withSuccessHandler(data => {
+            dashboardData = data || {};
+            setActionBusy(false);
+            showToast("Habit note saved.", "success");
+            renderShell();
+          })
+          .withFailureHandler(error => {
+            setActionBusy(false);
+            showToast(error && error.message ? error.message : error, "error");
+          })
+          .updateWebHabitNote(activity, note);
+      }
+
+      function showToast(message, type) {
+        window.clearTimeout(toastTimer);
+        const existing = document.querySelector(".toast");
+        if (existing) existing.remove();
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type || ""}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        toastTimer = window.setTimeout(() => {
+          toast.remove();
+        }, 3200);
       }
 
       function renderError(error) {

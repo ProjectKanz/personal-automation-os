@@ -23,6 +23,99 @@ function getWebDashboardData() {
 }
 
 
+function updateWebHabitStatus(activityName, isDone) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dbSheet = ss.getSheetByName("Daily_DB");
+  const today = getWebAppToday_();
+  const match = findTodayWebHabitRow_(dbSheet, today, activityName);
+
+
+  dbSheet.getRange(match.rowIndex, 4).setValue(isDone === true);
+  writeSystemLog(
+    "Web App",
+    "Update Habit Status",
+    "Success",
+    "Updated " + match.activity + " to " + (isDone === true ? "done" : "open")
+  );
+
+
+  return getWebDashboardData();
+}
+
+
+function updateWebHabitNote(activityName, noteText) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dbSheet = ss.getSheetByName("Daily_DB");
+  const today = getWebAppToday_();
+  const match = findTodayWebHabitRow_(dbSheet, today, activityName);
+  const cleanNote = noteText === null || noteText === undefined
+    ? ""
+    : noteText.toString().trim();
+
+
+  dbSheet.getRange(match.rowIndex, 5).setValue(cleanNote);
+  writeSystemLog(
+    "Web App",
+    "Update Habit Note",
+    "Success",
+    "Updated note for " + match.activity
+  );
+
+
+  return getWebDashboardData();
+}
+
+
+function findTodayWebHabitRow_(dbSheet, today, activityName) {
+  if (!dbSheet) {
+    throw new Error("Sheet Daily_DB tidak ditemukan.");
+  }
+
+
+  const activity = activityName ? activityName.toString().trim() : "";
+
+
+  if (activity === "") {
+    throw new Error("Habit activity name is required.");
+  }
+
+
+  const targetTime = normalizeDateOnly_(today).getTime();
+  const data = dbSheet.getDataRange().getValues();
+  const matches = [];
+
+
+  for (let i = 1; i < data.length; i++) {
+    const rowDate = data[i][0];
+    const rowActivity = data[i][2] ? data[i][2].toString().trim() : "";
+
+
+    if (!(rowDate instanceof Date)) continue;
+    if (normalizeDateOnly_(rowDate).getTime() !== targetTime) continue;
+    if (rowActivity !== activity) continue;
+
+
+    matches.push({
+      rowIndex: i + 1,
+      activity: rowActivity
+    });
+  }
+
+
+  if (matches.length === 0) {
+    throw new Error("Habit hari ini tidak ditemukan: " + activity);
+  }
+
+
+  if (matches.length > 1) {
+    throw new Error("Ada beberapa habit hari ini dengan nama yang sama: " + activity);
+  }
+
+
+  return matches[0];
+}
+
+
 function buildWebAppHabitSummary_(ss, today) {
   const sheet = ss.getSheetByName("Daily_DB");
 
@@ -92,7 +185,8 @@ function buildWebAppHabitItem_(row) {
   return {
     category: row[1] || "General",
     activity: row[2] || "Unnamed habit",
-    note: row[4] || ""
+    note: row[4] || "",
+    done: row[3] === true
   };
 }
 
