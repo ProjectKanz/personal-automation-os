@@ -547,6 +547,19 @@
         margin-top: 12px;
       }
 
+      .search-row {
+        margin-bottom: 12px;
+      }
+
+      .sub-link {
+        color: var(--cyan);
+        text-decoration: none;
+      }
+
+      .sub-link:hover {
+        text-decoration: underline;
+      }
+
       .item-action {
         min-height: 38px;
         border-radius: 7px;
@@ -837,6 +850,7 @@
       const applicationStatuses = ["Saved", "Applied", "Assessment", "Interview", "Rejected", "Offer", "Withdrawn"];
       let dashboardData = null;
       let activeView = "home";
+      let careerSearchQuery = "";
       let loadTimer = null;
       let busyAction = false;
       let toastTimer = null;
@@ -1101,6 +1115,7 @@
 
       function renderCareerView() {
         const career = (dashboardData || {}).career || {};
+        const visibleApplications = filterApplications(career.allApplications || career.recent || []);
 
         return `
           ${renderViewTitle("Career Pipeline", "Application volume, interview signal, follow-up pressure, and sector mix.")}
@@ -1112,10 +1127,13 @@
           <section class="grid two">
             <article class="panel">
               <div class="panel-title">
-                <h3>Recent Applications</h3>
-                <span class="tag">${career.rejectionRate || 0}% rejected</span>
+                <h3>Applications</h3>
+                <span class="tag">${visibleApplications.length}/${career.totalApplications || 0}</span>
               </div>
-              <div class="list scroll">${renderApplications(career.recent, true)}</div>
+              <div class="search-row">
+                <input class="note-input" value="${escapeHtml(careerSearchQuery)}" data-app-search placeholder="Search company, role, status, CV, sector">
+              </div>
+              <div class="list scroll">${renderApplications(visibleApplications, true)}</div>
             </article>
             <article class="panel">
               <div class="panel-title">
@@ -1276,9 +1294,17 @@
                 ${applicationStatuses.map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`).join("")}
               </select>
             </label>
+            <label class="field">
+              <span class="field-label">Job Posting Link</span>
+              <input class="note-input" data-app-job-link placeholder="https://...">
+            </label>
+            <label class="field wide">
+              <span class="field-label">CV PDF</span>
+              <input class="note-input" type="file" accept="application/pdf,.pdf" data-app-cv-file>
+            </label>
             <label class="field wide">
               <span class="field-label">Notes</span>
-              <input class="note-input" data-app-notes placeholder="Source, context, CV version, or next action">
+              <input class="note-input" data-app-notes placeholder="Source, context, or next action">
             </label>
           </div>
           <div class="form-actions">
@@ -1301,7 +1327,10 @@
             <div class="list-item ${editable ? "habit-editor" : ""}">
               <div class="item-main">
                 <div class="item-title">${escapeHtml(item.companyName)}</div>
-                <div class="item-sub">${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category || "Unmapped")} · ${escapeHtml(item.cvVersion || "General")}</div>
+                <div class="item-sub">
+                  ${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category || "Unmapped")} · ${renderCvLink(item.cvVersion)}
+                  ${item.jobLink ? ` · <a class="sub-link" href="${escapeHtml(item.jobLink)}" target="_blank">Job post</a>` : ""}
+                </div>
                 ${editable ? `
                   <div class="item-controls">
                     <select class="note-input select-input" data-app-status-select="${rowIndex}">
@@ -1338,6 +1367,31 @@
             <span class="tag ${item.outcome === "Win" ? "green" : item.outcome === "Loss" ? "pink" : "amber"}">${escapeHtml(item.outcome)}</span>
           </div>
         `).join("");
+      }
+
+      function renderCvLink(value) {
+        const text = String(value || "General");
+
+        if (/^https?:\/\//i.test(text)) {
+          return `<a class="sub-link" href="${escapeHtml(text)}" target="_blank">CV PDF</a>`;
+        }
+
+        return escapeHtml(text);
+      }
+
+      function filterApplications(items) {
+        const query = careerSearchQuery.trim().toLowerCase();
+
+        if (!query) return items;
+
+        return items.filter(item => [
+          item.companyName,
+          item.jobTitle,
+          item.status,
+          item.category,
+          item.cvVersion,
+          item.jobLink
+        ].join(" ").toLowerCase().indexOf(query) !== -1);
       }
 
       function renderSectors(items) {
@@ -1404,6 +1458,19 @@
           appAdd.addEventListener("click", addApplicationFromWeb);
         }
 
+        const appSearch = app.querySelector("[data-app-search]");
+        if (appSearch) {
+          appSearch.addEventListener("input", event => {
+            careerSearchQuery = event.target.value;
+            renderShell();
+            const nextSearch = app.querySelector("[data-app-search]");
+            if (nextSearch) {
+              nextSearch.focus();
+              nextSearch.setSelectionRange(nextSearch.value.length, nextSearch.value.length);
+            }
+          });
+        }
+
         app.querySelectorAll("[data-app-status-save]").forEach(button => {
           button.addEventListener("click", () => {
             const rowIndex = button.getAttribute("data-app-status-save");
@@ -1464,20 +1531,35 @@
           .updateWebHabitNote(activity, note);
       }
 
-      function addApplicationFromWeb() {
+      async function addApplicationFromWeb() {
         if (busyAction) return;
 
         const company = (app.querySelector("[data-app-company]") || {}).value || "";
         const role = (app.querySelector("[data-app-role]") || {}).value || "";
         const status = (app.querySelector("[data-app-status]") || {}).value || "";
         const notes = (app.querySelector("[data-app-notes]") || {}).value || "";
+        const jobLink = (app.querySelector("[data-app-job-link]") || {}).value || "";
+        const fileInput = app.querySelector("[data-app-cv-file]");
+        const cvFile = fileInput && fileInput.files && fileInput.files[0]
+          ? fileInput.files[0]
+          : null;
 
-        if (!company.trim() || !role.trim() || !status.trim() || !notes.trim()) {
-          showToast("Company, role, status, and notes are required.", "error");
+        if (!company.trim() || !role.trim() || !status.trim() || !notes.trim() || !jobLink.trim() || !cvFile) {
+          showToast("Company, role, status, job link, CV PDF, and notes are required.", "error");
           return;
         }
 
         setActionBusy(true);
+
+        let cvPayload;
+
+        try {
+          cvPayload = await readFileAsPayload(cvFile);
+        } catch (error) {
+          setActionBusy(false);
+          showToast(error && error.message ? error.message : error, "error");
+          return;
+        }
 
         google.script.run
           .withSuccessHandler(data => {
@@ -1491,7 +1573,32 @@
             setActionBusy(false);
             showToast(error && error.message ? error.message : error, "error");
           })
-          .addWebApplication(company, role, status, notes);
+          .addWebApplication(company, role, status, notes, jobLink, cvPayload);
+      }
+
+      function readFileAsPayload(file) {
+        return new Promise((resolve, reject) => {
+          if (!file || (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) {
+            reject(new Error("CV file must be a PDF."));
+            return;
+          }
+
+          const reader = new FileReader();
+
+          reader.onload = () => {
+            const result = String(reader.result || "");
+            const commaIndex = result.indexOf(",");
+
+            resolve({
+              name: file.name,
+              mimeType: file.type || "application/pdf",
+              base64: commaIndex === -1 ? result : result.substring(commaIndex + 1)
+            });
+          };
+
+          reader.onerror = () => reject(new Error("Could not read CV PDF file."));
+          reader.readAsDataURL(file);
+        });
       }
 
       function updateApplicationStatus(rowIndex, company, role, status) {

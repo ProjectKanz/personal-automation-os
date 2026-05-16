@@ -7,6 +7,10 @@ function doGet() {
 }
 
 
+const WEB_APP_MT_CV_FOLDER_ID = "1rzxhejziuU6_L11y9DRi-Exup5K5SbwJ";
+const WEB_APP_DATA_CV_FOLDER_ID = "1a8lnZT-pSlYhoaxazA-vRxDri5BEuDwn";
+
+
 function getWebDashboardData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const today = getWebAppToday_();
@@ -66,7 +70,7 @@ function updateWebHabitNote(activityName, noteText) {
 }
 
 
-function addWebApplication(companyName, jobTitle, status, notes) {
+function addWebApplication(companyName, jobTitle, status, notes, jobPostingLink, cvFile) {
   const input = [
     companyName || "",
     jobTitle || "",
@@ -81,18 +85,113 @@ function addWebApplication(companyName, jobTitle, status, notes) {
   }
 
 
+  const cvUrl = uploadWebApplicationCv_(cvFile);
   addApplicationFromTelegram(input);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Applications");
+  const targetRow = findLatestWebApplicationRow_(sheet, parsed.company, parsed.role);
+
+
+  sheet.getRange(targetRow, APPLICATIONS_COL.LINK_JOB_POSTING + 1).setValue(jobPostingLink || "");
+  sheet.getRange(targetRow, APPLICATIONS_COL.CV_VERSION + 1).setValue(cvUrl);
 
 
   writeSystemLog(
     "Web App",
     "Add Application",
     "Success",
-    "Added application from web app: " + (companyName || "") + " - " + (jobTitle || "")
+    "Added application from web app with CV upload: " + (companyName || "") + " - " + (jobTitle || "")
   );
 
 
   return getWebDashboardData();
+}
+
+
+function uploadWebApplicationCv_(cvFile) {
+  if (!cvFile || !cvFile.name || !cvFile.base64) {
+    throw new Error("CV PDF file is required.");
+  }
+
+
+  const fileName = cvFile.name.toString();
+  const lowerName = fileName.toLowerCase();
+  const isPdf = lowerName.endsWith(".pdf") ||
+    cvFile.mimeType === "application/pdf";
+
+
+  if (!isPdf) {
+    throw new Error("CV file must be a PDF.");
+  }
+
+
+  const folderId = getWebApplicationCvFolderId_(fileName);
+  const bytes = Utilities.base64Decode(cvFile.base64);
+  const blob = Utilities.newBlob(
+    bytes,
+    cvFile.mimeType || "application/pdf",
+    fileName
+  );
+  const file = DriveApp
+    .getFolderById(folderId)
+    .createFile(blob)
+    .setName(fileName);
+
+
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (error) {
+    console.warn("Could not set CV sharing permission: " + getErrorMessage_(error));
+  }
+
+
+  return file.getUrl();
+}
+
+
+function getWebApplicationCvFolderId_(fileName) {
+  const lowerName = fileName.toLowerCase();
+
+
+  if (lowerName.indexOf("mt") !== -1) {
+    return WEB_APP_MT_CV_FOLDER_ID;
+  }
+
+
+  if (lowerName.indexOf("data") !== -1) {
+    return WEB_APP_DATA_CV_FOLDER_ID;
+  }
+
+
+  throw new Error("CV filename must contain MT or Data so it can be routed to the right Drive folder.");
+}
+
+
+function findLatestWebApplicationRow_(sheet, companyName, jobTitle) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    throw new Error("Could not find newly added application row.");
+  }
+
+
+  const cleanCompany = String(companyName || "").trim();
+  const cleanJobTitle = String(jobTitle || "").trim();
+  const values = sheet
+    .getRange(2, 1, sheet.getLastRow() - 1, APPLICATIONS_V3_HEADERS.length)
+    .getValues();
+
+
+  for (let i = values.length - 1; i >= 0; i--) {
+    const rowCompany = String(values[i][APPLICATIONS_COL.COMPANY_NAME] || "").trim();
+    const rowJobTitle = String(values[i][APPLICATIONS_COL.JOB_TITLE] || "").trim();
+
+
+    if (rowCompany === cleanCompany && rowJobTitle === cleanJobTitle) {
+      return i + 2;
+    }
+  }
+
+
+  throw new Error("Could not find newly added application row.");
 }
 
 
@@ -310,15 +409,7 @@ function buildWebAppCareerSummary_(ss, today) {
       return dateB - dateA;
     })
     .slice(0, 5)
-    .map(row => ({
-      companyName: row.companyName,
-      jobTitle: row.jobTitle,
-      rowIndex: row.rowIndex,
-      status: formatWebAppStatus_(row.status),
-      category: row.category || "Unmapped",
-      daysSinceApplied: row.daysSinceApplied,
-      cvVersion: row.cvVersion || "General"
-    }));
+    .map(row => buildWebAppApplicationPayload_(row));
 
 
   return {
@@ -328,7 +419,29 @@ function buildWebAppCareerSummary_(ss, today) {
     rejectionRate: calculateWebAppPercentage_(rejectedCount, totalApplications),
     successRate: calculateWebAppPercentage_(offerCount, totalApplications),
     recent: recent,
+    allApplications: rows
+      .slice()
+      .sort((a, b) => {
+        const dateA = a.dateApplied ? a.dateApplied.getTime() : 0;
+        const dateB = b.dateApplied ? b.dateApplied.getTime() : 0;
+        return dateB - dateA;
+      })
+      .map(row => buildWebAppApplicationPayload_(row)),
     sectors: buildWebAppTopSectors_(rows)
+  };
+}
+
+
+function buildWebAppApplicationPayload_(row) {
+  return {
+    companyName: row.companyName,
+    jobTitle: row.jobTitle,
+    rowIndex: row.rowIndex,
+    status: formatWebAppStatus_(row.status),
+    category: row.category || "Unmapped",
+    daysSinceApplied: row.daysSinceApplied,
+    cvVersion: row.cvVersion || "General",
+    jobLink: row.jobLink || ""
   };
 }
 
@@ -351,6 +464,7 @@ function buildWebAppApplicationItem_(row, headers, today, rowIndex) {
     dateApplied: dateApplied,
     daysSinceApplied: dateApplied ? Math.floor((today.getTime() - dateApplied.getTime()) / 86400000) : null,
     cvVersion: getWebAppField_(row, headers, ["CV VERSION", "CV", "CV Version"], 10) || "",
+    jobLink: getWebAppField_(row, headers, ["Link Job posting", "Link"], 9) || "",
     notes: getWebAppField_(row, headers, ["Notes"], 11) || "",
     followUpDue: followUpRequired === "yes" && followUpDate && followUpDate.getTime() <= today.getTime()
   };
