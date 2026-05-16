@@ -1446,6 +1446,7 @@
             }
 
             applicationDraft.cvFileName = "";
+            applicationDraft.cvFile = null;
             loadDashboard({ silent: true });
           });
         }
@@ -1516,7 +1517,8 @@
           dateApplied: getTodayInputDate(),
           jobLink: "",
           notes: "",
-          cvFileName: ""
+          cvFileName: "",
+          cvFile: null
         };
       }
 
@@ -1552,8 +1554,13 @@
         const fileInput = app.querySelector("[data-app-cv-file]");
         if (fileInput) {
           fileInput.addEventListener("change", () => {
-            applicationDraft.cvFileName = fileInput.files && fileInput.files[0]
-              ? fileInput.files[0].name
+            const selectedFile = fileInput.files && fileInput.files[0]
+              ? fileInput.files[0]
+              : null;
+
+            applicationDraft.cvFile = selectedFile;
+            applicationDraft.cvFileName = selectedFile
+              ? selectedFile.name
               : "";
             scheduleAutoRefresh();
           });
@@ -1620,10 +1627,19 @@
         const fileInput = app.querySelector("[data-app-cv-file]");
         const cvFile = fileInput && fileInput.files && fileInput.files[0]
           ? fileInput.files[0]
-          : null;
+          : applicationDraft.cvFile;
 
-        if (!company.trim() || !role.trim() || !status.trim() || !dateApplied.trim() || !jobLink.trim() || !cvFile) {
-          showToast("Company, role, status, date applied, job link, and CV PDF are required.", "error");
+        const missingFields = [];
+
+        if (!company.trim()) missingFields.push("company");
+        if (!role.trim()) missingFields.push("role");
+        if (!status.trim()) missingFields.push("status");
+        if (!dateApplied.trim()) missingFields.push("date applied");
+        if (!jobLink.trim()) missingFields.push("job link");
+        if (!cvFile) missingFields.push("CV PDF");
+
+        if (missingFields.length > 0) {
+          showToast("Missing: " + missingFields.join(", ") + ".", "error");
           return;
         }
 
