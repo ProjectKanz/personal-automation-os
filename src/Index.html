@@ -238,6 +238,16 @@
         box-shadow: 0 0 18px rgba(99, 237, 168, 0.7);
       }
 
+      .pulse.syncing {
+        background: var(--amber);
+        box-shadow: 0 0 18px rgba(255, 209, 102, 0.68);
+      }
+
+      .pulse.paused {
+        background: var(--muted);
+        box-shadow: none;
+      }
+
       .status-text {
         min-width: 0;
         overflow: hidden;
@@ -797,13 +807,31 @@
       let loadTimer = null;
       let busyAction = false;
       let toastTimer = null;
+      let autoRefreshTimer = null;
+      let isSyncing = false;
+      let lastSyncedAt = null;
+      const AUTO_REFRESH_INTERVAL_MS = 45000;
 
       loadDashboard();
+      document.addEventListener("visibilitychange", handleVisibilityChange);
 
-      function loadDashboard() {
-        renderLoading("Loading command center");
+      function loadDashboard(options) {
+        const settings = options || {};
+        const isSilent = settings.silent === true && dashboardData !== null;
+
+        if (isSyncing || busyAction) return;
+
+        isSyncing = true;
+
+        if (isSilent) {
+          updateSyncIndicator();
+        } else {
+          renderLoading("Loading command center");
+        }
+
         window.clearTimeout(loadTimer);
         loadTimer = window.setTimeout(() => {
+          isSyncing = false;
           renderError({
             message: "Dashboard data request timed out. Refresh once; if it keeps happening, check Apps Script executions."
           });
@@ -812,10 +840,23 @@
         google.script.run
           .withSuccessHandler(data => {
             window.clearTimeout(loadTimer);
+            isSyncing = false;
             dashboardData = data || {};
+            lastSyncedAt = new Date();
             renderShell();
+            scheduleAutoRefresh();
           })
-          .withFailureHandler(renderError)
+          .withFailureHandler(error => {
+            isSyncing = false;
+            if (isSilent) {
+              showToast(error && error.message ? error.message : error, "error");
+              updateSyncIndicator();
+              scheduleAutoRefresh();
+              return;
+            }
+
+            renderError(error);
+          })
           .getWebDashboardData();
       }
 
@@ -870,8 +911,8 @@
           <main class="main">
             <div class="topbar">
               <div class="status-pill">
-                <span class="pulse"></span>
-                <span class="status-text">Personal Productivity OS · ${escapeHtml(data.generatedAt || "Live")}</span>
+                <span class="pulse ${getSyncPulseClass()}"></span>
+                <span class="status-text">${escapeHtml(getSyncStatusText(data.generatedAt))}</span>
               </div>
               <button class="action-button" data-refresh="true">Refresh</button>
               <a class="open-link" href="${escapeHtml(data.spreadsheetUrl || "#")}" target="_blank">Open Sheet</a>
@@ -1250,7 +1291,7 @@
 
         const refresh = app.querySelector("[data-refresh]");
         if (refresh) {
-          refresh.addEventListener("click", loadDashboard);
+          refresh.addEventListener("click", () => loadDashboard({ silent: true }));
         }
 
         app.querySelectorAll("[data-status-action]").forEach(button => {
@@ -1275,6 +1316,10 @@
         app.querySelectorAll("[data-status-action], [data-note-save], [data-refresh]").forEach(button => {
           button.disabled = isBusy;
         });
+
+        if (!isBusy) {
+          scheduleAutoRefresh();
+        }
       }
 
       function updateHabitStatus(activity, nextDone) {
@@ -1284,6 +1329,7 @@
         google.script.run
           .withSuccessHandler(data => {
             dashboardData = data || {};
+            lastSyncedAt = new Date();
             setActionBusy(false);
             showToast(nextDone ? "Habit marked done." : "Habit reopened.", "success");
             renderShell();
@@ -1302,6 +1348,7 @@
         google.script.run
           .withSuccessHandler(data => {
             dashboardData = data || {};
+            lastSyncedAt = new Date();
             setActionBusy(false);
             showToast("Habit note saved.", "success");
             renderShell();
@@ -1326,6 +1373,68 @@
         toastTimer = window.setTimeout(() => {
           toast.remove();
         }, 3200);
+      }
+
+      function scheduleAutoRefresh() {
+        window.clearTimeout(autoRefreshTimer);
+
+        if (document.hidden || busyAction) return;
+
+        autoRefreshTimer = window.setTimeout(() => {
+          loadDashboard({ silent: true });
+        }, AUTO_REFRESH_INTERVAL_MS);
+      }
+
+      function handleVisibilityChange() {
+        if (document.hidden) {
+          window.clearTimeout(autoRefreshTimer);
+          updateSyncIndicator();
+          return;
+        }
+
+        loadDashboard({ silent: true });
+      }
+
+      function getSyncPulseClass() {
+        if (isSyncing) return "syncing";
+        if (document.hidden) return "paused";
+        return "";
+      }
+
+      function getSyncStatusText(generatedAt) {
+        if (isSyncing) {
+          return "Personal Productivity OS · Syncing...";
+        }
+
+        if (document.hidden) {
+          return "Personal Productivity OS · Auto-sync paused";
+        }
+
+        if (lastSyncedAt) {
+          return "Personal Productivity OS · Last synced " + formatLocalTime(lastSyncedAt);
+        }
+
+        return "Personal Productivity OS · " + (generatedAt || "Live");
+      }
+
+      function updateSyncIndicator() {
+        const pulse = app.querySelector(".pulse");
+        const text = app.querySelector(".status-text");
+
+        if (pulse) {
+          pulse.className = "pulse " + getSyncPulseClass();
+        }
+
+        if (text) {
+          text.textContent = getSyncStatusText(dashboardData && dashboardData.generatedAt);
+        }
+      }
+
+      function formatLocalTime(date) {
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
       }
 
       function renderError(error) {
