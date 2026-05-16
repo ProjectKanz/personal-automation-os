@@ -1283,11 +1283,11 @@
           <div class="form-grid">
             <label class="field">
               <span class="field-label">Company</span>
-              <input class="note-input" value="${escapeHtml(applicationDraft.company)}" data-app-company placeholder="Company name">
+              <input class="note-input" value="${escapeHtml(applicationDraft.company)}" data-app-company-input placeholder="Company name">
             </label>
             <label class="field">
               <span class="field-label">Role</span>
-              <input class="note-input" value="${escapeHtml(applicationDraft.role)}" data-app-role placeholder="Job title">
+              <input class="note-input" value="${escapeHtml(applicationDraft.role)}" data-app-role-input placeholder="Job title">
             </label>
             <label class="field">
               <span class="field-label">Status</span>
@@ -1528,8 +1528,8 @@
 
       function bindApplicationDraftInputs() {
         const bindings = [
-          ["[data-app-company]", "company"],
-          ["[data-app-role]", "role"],
+          ["[data-app-company-input]", "company"],
+          ["[data-app-role-input]", "role"],
           ["[data-app-status]", "status"],
           ["[data-app-date-applied]", "dateApplied"],
           ["[data-app-job-link]", "jobLink"],
@@ -1618,8 +1618,8 @@
       async function addApplicationFromWeb() {
         if (busyAction) return;
 
-        const company = (app.querySelector("[data-app-company]") || {}).value || "";
-        const role = (app.querySelector("[data-app-role]") || {}).value || "";
+        const company = (app.querySelector("[data-app-company-input]") || {}).value || "";
+        const role = (app.querySelector("[data-app-role-input]") || {}).value || "";
         const status = (app.querySelector("[data-app-status]") || {}).value || "";
         const notes = (app.querySelector("[data-app-notes]") || {}).value || "";
         const jobLink = (app.querySelector("[data-app-job-link]") || {}).value || "";
