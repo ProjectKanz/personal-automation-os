@@ -66,6 +66,87 @@ function updateWebHabitNote(activityName, noteText) {
 }
 
 
+function addWebApplication(companyName, jobTitle, status, notes) {
+  const input = [
+    companyName || "",
+    jobTitle || "",
+    status || "",
+    notes || ""
+  ].join(" | ");
+  const parsed = parseCareerAddInput_(input);
+
+
+  if (!parsed.isValid) {
+    throw new Error(parsed.error);
+  }
+
+
+  addApplicationFromTelegram(input);
+
+
+  writeSystemLog(
+    "Web App",
+    "Add Application",
+    "Success",
+    "Added application from web app: " + (companyName || "") + " - " + (jobTitle || "")
+  );
+
+
+  return getWebDashboardData();
+}
+
+
+function updateWebApplicationStatus(rowIndex, companyName, jobTitle, status) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Applications");
+
+
+  if (!sheet) {
+    throw new Error("Sheet Applications tidak ditemukan.");
+  }
+
+
+  const targetRow = Number(rowIndex);
+  const cleanCompany = String(companyName || "").trim();
+  const cleanJobTitle = String(jobTitle || "").trim();
+  const normalizedStatus = normalizeCareerStatus_(status);
+
+
+  if (!targetRow || targetRow < 2 || targetRow > sheet.getLastRow()) {
+    throw new Error("Application row is invalid.");
+  }
+
+
+  if (!normalizedStatus) {
+    throw new Error("Status must be one of: " + APPLICATIONS_STATUS_OPTIONS.join(", "));
+  }
+
+
+  const rowValues = sheet
+    .getRange(targetRow, 1, 1, APPLICATIONS_V3_HEADERS.length)
+    .getValues()[0];
+  const currentCompany = String(rowValues[APPLICATIONS_COL.COMPANY_NAME] || "").trim();
+  const currentJobTitle = String(rowValues[APPLICATIONS_COL.JOB_TITLE] || "").trim();
+
+
+  if (currentCompany !== cleanCompany || currentJobTitle !== cleanJobTitle) {
+    throw new Error("Application row no longer matches the selected company and role.");
+  }
+
+
+  sheet.getRange(targetRow, APPLICATIONS_COL.STATUS + 1).setValue(normalizedStatus);
+  writeSystemLog(
+    "Web App",
+    "Update Application Status",
+    "Success",
+    "Updated " + cleanCompany + " - " + cleanJobTitle + " to " + normalizedStatus
+  );
+
+
+  return getWebDashboardData();
+}
+
+
 function findTodayWebHabitRow_(dbSheet, today, activityName) {
   if (!dbSheet) {
     throw new Error("Sheet Daily_DB tidak ditemukan.");
@@ -215,7 +296,7 @@ function buildWebAppCareerSummary_(ss, today) {
   const rows = values
     .slice(1)
     .filter(row => row.some(value => value !== "" && value !== null))
-    .map(row => buildWebAppApplicationItem_(row, headers, today));
+    .map((row, index) => buildWebAppApplicationItem_(row, headers, today, index + 2));
   const totalApplications = rows.length;
   const offerCount = rows.filter(row => row.statusLower === "offer").length;
   const rejectedCount = rows.filter(row => row.statusLower === "rejected").length;
@@ -232,6 +313,7 @@ function buildWebAppCareerSummary_(ss, today) {
     .map(row => ({
       companyName: row.companyName,
       jobTitle: row.jobTitle,
+      rowIndex: row.rowIndex,
       status: formatWebAppStatus_(row.status),
       category: row.category || "Unmapped",
       daysSinceApplied: row.daysSinceApplied,
@@ -251,7 +333,7 @@ function buildWebAppCareerSummary_(ss, today) {
 }
 
 
-function buildWebAppApplicationItem_(row, headers, today) {
+function buildWebAppApplicationItem_(row, headers, today, rowIndex) {
   const dateApplied = parseWebAppDate_(getWebAppField_(row, headers, ["Date Applied", "Date"], 3));
   const followUpDate = parseWebAppDate_(getWebAppField_(row, headers, ["Follow Up Date", "Date FU"], 8));
   const followUpRequired = String(getWebAppField_(row, headers, ["FU Required?", "FU"], 7) || "").trim().toLowerCase();
@@ -260,6 +342,7 @@ function buildWebAppApplicationItem_(row, headers, today) {
 
 
   return {
+    rowIndex: rowIndex,
     companyName: getWebAppField_(row, headers, ["Company Name", "Company"], 0) || "-",
     jobTitle: getWebAppField_(row, headers, ["Job Title", "Position"], 1) || "-",
     category: getWebAppField_(row, headers, ["Category", "Industry"], 2) || "",

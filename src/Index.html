@@ -516,6 +516,37 @@
         box-shadow: 0 0 0 3px rgba(32, 216, 232, 0.09);
       }
 
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field.wide {
+        grid-column: 1 / -1;
+      }
+
+      .field-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .select-input {
+        appearance: none;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 12px;
+      }
+
       .item-action {
         min-height: 38px;
         border-radius: 7px;
@@ -779,7 +810,8 @@
           white-space: normal;
         }
 
-        .item-controls {
+        .item-controls,
+        .form-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -802,6 +834,7 @@
         { id: "trading", label: "Trading", icon: "◇" },
         { id: "audit", label: "AI Audit", icon: "✦" }
       ];
+      const applicationStatuses = ["Saved", "Applied", "Assessment", "Interview", "Rejected", "Offer", "Withdrawn"];
       let dashboardData = null;
       let activeView = "home";
       let loadTimer = null;
@@ -1082,7 +1115,7 @@
                 <h3>Recent Applications</h3>
                 <span class="tag">${career.rejectionRate || 0}% rejected</span>
               </div>
-              <div class="list scroll">${renderApplications(career.recent)}</div>
+              <div class="list scroll">${renderApplications(career.recent, true)}</div>
             </article>
             <article class="panel">
               <div class="panel-title">
@@ -1090,6 +1123,13 @@
                 <span class="tag amber">${(career.sectors || []).length} groups</span>
               </div>
               <div class="list">${renderSectors(career.sectors)}</div>
+            </article>
+            <article class="panel wide">
+              <div class="panel-title">
+                <h3>Add Application</h3>
+                <span class="tag green">Web entry</span>
+              </div>
+              ${renderApplicationForm()}
             </article>
           </section>
         `;
@@ -1219,20 +1259,69 @@
         }).join("");
       }
 
-      function renderApplications(items) {
+      function renderApplicationForm() {
+        return `
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">Company</span>
+              <input class="note-input" data-app-company placeholder="Company name">
+            </label>
+            <label class="field">
+              <span class="field-label">Role</span>
+              <input class="note-input" data-app-role placeholder="Job title">
+            </label>
+            <label class="field">
+              <span class="field-label">Status</span>
+              <select class="note-input select-input" data-app-status>
+                ${applicationStatuses.map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`).join("")}
+              </select>
+            </label>
+            <label class="field wide">
+              <span class="field-label">Notes</span>
+              <input class="note-input" data-app-notes placeholder="Source, context, CV version, or next action">
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="item-action" data-app-add="true">Add application</button>
+          </div>
+        `;
+      }
+
+      function renderApplications(items, editable) {
         if (!items || items.length === 0) {
           return `<div class="empty">No application rows found yet.</div>`;
         }
 
-        return items.map(item => `
-          <div class="list-item">
-            <div class="item-main">
-              <div class="item-title">${escapeHtml(item.companyName)}</div>
-              <div class="item-sub">${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category || "Unmapped")} · ${escapeHtml(item.cvVersion || "General")}</div>
+        return items.map(item => {
+          const encodedCompany = encodeURIComponent(item.companyName || "");
+          const encodedRole = encodeURIComponent(item.jobTitle || "");
+          const rowIndex = item.rowIndex || "";
+
+          return `
+            <div class="list-item ${editable ? "habit-editor" : ""}">
+              <div class="item-main">
+                <div class="item-title">${escapeHtml(item.companyName)}</div>
+                <div class="item-sub">${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category || "Unmapped")} · ${escapeHtml(item.cvVersion || "General")}</div>
+                ${editable ? `
+                  <div class="item-controls">
+                    <select class="note-input select-input" data-app-status-select="${rowIndex}">
+                      ${applicationStatuses.map(status => `
+                        <option value="${escapeHtml(status)}" ${status.toLowerCase() === String(item.status || "").toLowerCase() ? "selected" : ""}>${escapeHtml(status)}</option>
+                      `).join("")}
+                    </select>
+                    <button
+                      class="item-action"
+                      data-app-status-save="${rowIndex}"
+                      data-app-company="${encodedCompany}"
+                      data-app-role="${encodedRole}"
+                    >Save status</button>
+                  </div>
+                ` : ""}
+              </div>
+              ${editable ? "" : `<span class="tag ${getStatusTone(item.status)}">${escapeHtml(item.status)}</span>`}
             </div>
-            <span class="tag ${getStatusTone(item.status)}">${escapeHtml(item.status)}</span>
-          </div>
-        `).join("");
+          `;
+        }).join("");
       }
 
       function renderTrades(items) {
@@ -1309,11 +1398,26 @@
             updateHabitNote(activity, input ? input.value : "");
           });
         });
+
+        const appAdd = app.querySelector("[data-app-add]");
+        if (appAdd) {
+          appAdd.addEventListener("click", addApplicationFromWeb);
+        }
+
+        app.querySelectorAll("[data-app-status-save]").forEach(button => {
+          button.addEventListener("click", () => {
+            const rowIndex = button.getAttribute("data-app-status-save");
+            const statusInput = app.querySelector(`[data-app-status-select="${rowIndex}"]`);
+            const company = decodeURIComponent(button.getAttribute("data-app-company") || "");
+            const role = decodeURIComponent(button.getAttribute("data-app-role") || "");
+            updateApplicationStatus(rowIndex, company, role, statusInput ? statusInput.value : "");
+          });
+        });
       }
 
       function setActionBusy(isBusy) {
         busyAction = isBusy;
-        app.querySelectorAll("[data-status-action], [data-note-save], [data-refresh]").forEach(button => {
+        app.querySelectorAll("[data-status-action], [data-note-save], [data-refresh], [data-app-add], [data-app-status-save]").forEach(button => {
           button.disabled = isBusy;
         });
 
@@ -1358,6 +1462,55 @@
             showToast(error && error.message ? error.message : error, "error");
           })
           .updateWebHabitNote(activity, note);
+      }
+
+      function addApplicationFromWeb() {
+        if (busyAction) return;
+
+        const company = (app.querySelector("[data-app-company]") || {}).value || "";
+        const role = (app.querySelector("[data-app-role]") || {}).value || "";
+        const status = (app.querySelector("[data-app-status]") || {}).value || "";
+        const notes = (app.querySelector("[data-app-notes]") || {}).value || "";
+
+        if (!company.trim() || !role.trim() || !status.trim() || !notes.trim()) {
+          showToast("Company, role, status, and notes are required.", "error");
+          return;
+        }
+
+        setActionBusy(true);
+
+        google.script.run
+          .withSuccessHandler(data => {
+            dashboardData = data || {};
+            lastSyncedAt = new Date();
+            setActionBusy(false);
+            showToast("Application added.", "success");
+            renderShell();
+          })
+          .withFailureHandler(error => {
+            setActionBusy(false);
+            showToast(error && error.message ? error.message : error, "error");
+          })
+          .addWebApplication(company, role, status, notes);
+      }
+
+      function updateApplicationStatus(rowIndex, company, role, status) {
+        if (busyAction) return;
+        setActionBusy(true);
+
+        google.script.run
+          .withSuccessHandler(data => {
+            dashboardData = data || {};
+            lastSyncedAt = new Date();
+            setActionBusy(false);
+            showToast("Application status saved.", "success");
+            renderShell();
+          })
+          .withFailureHandler(error => {
+            setActionBusy(false);
+            showToast(error && error.message ? error.message : error, "error");
+          })
+          .updateWebApplicationStatus(rowIndex, company, role, status);
       }
 
       function showToast(message, type) {
