@@ -439,6 +439,62 @@
         background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
       }
 
+      .trade-chart {
+        position: relative;
+        min-height: 260px;
+        overflow: hidden;
+        border-radius: 8px;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+          rgba(13, 15, 40, 0.38);
+        background-size: 100% 25%, 12.5% 100%, auto;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .trade-chart svg {
+        width: 100%;
+        height: 260px;
+        display: block;
+      }
+
+      .chart-line {
+        fill: none;
+        stroke: url(#tradeLineGradient);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .chart-zero {
+        stroke: rgba(255, 255, 255, 0.18);
+        stroke-width: 1;
+        stroke-dasharray: 6 7;
+      }
+
+      .chart-dot {
+        stroke: rgba(16, 17, 36, 0.95);
+        stroke-width: 3;
+      }
+
+      .chart-dot.win {
+        fill: var(--green);
+      }
+
+      .chart-dot.loss {
+        fill: var(--pink);
+      }
+
+      .chart-dot.flat {
+        fill: var(--amber);
+      }
+
+      .chart-label {
+        fill: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
       .list {
         display: grid;
         gap: 10px;
@@ -1186,6 +1242,13 @@
           <section class="grid">
             <article class="panel wide">
               <div class="panel-title">
+                <h3>Money Condition</h3>
+                <span class="tag cyan">Cumulative P/L</span>
+              </div>
+              ${renderTradingChart(trading.trades || trading.recent)}
+            </article>
+            <article class="panel wide">
+              <div class="panel-title">
                 <h3>Recent Trades</h3>
                 <span class="tag green">${trading.winRate || 0}% WR</span>
               </div>
@@ -1392,6 +1455,76 @@
             <span class="tag ${item.outcome === "Win" ? "green" : item.outcome === "Loss" ? "pink" : "amber"}">${escapeHtml(item.outcome)}</span>
           </div>
         `).join("");
+      }
+
+      function renderTradingChart(items) {
+        if (!items || items.length === 0) {
+          return `<div class="empty">No closed trades in this date range yet.</div>`;
+        }
+
+        const orderedTrades = items.slice().reverse();
+        let cumulative = 0;
+        const points = orderedTrades.map((item, index) => {
+          const tradePnl = Number(item && item.pL);
+          const safePnl = Number.isFinite(tradePnl) ? tradePnl : 0;
+          cumulative += safePnl;
+
+          return {
+            index: index,
+            value: cumulative,
+            pnl: safePnl,
+            symbol: item && item.symbol ? item.symbol : "Trade",
+            exitDate: item && item.exitDate ? item.exitDate : ""
+          };
+        });
+
+        const width = 720;
+        const height = 260;
+        const pad = 28;
+        const minValue = Math.min(0, ...points.map(point => point.value));
+        const maxValue = Math.max(0, ...points.map(point => point.value));
+        const range = maxValue - minValue || 1;
+        const plotWidth = width - pad * 2;
+        const plotHeight = height - pad * 2;
+        const xFor = index => points.length === 1 ? width / 2 : pad + (index / (points.length - 1)) * plotWidth;
+        const yFor = value => height - pad - ((value - minValue) / range) * plotHeight;
+        const linePoints = points.map(point => `${xFor(point.index).toFixed(1)},${yFor(point.value).toFixed(1)}`).join(" ");
+        const zeroY = yFor(0).toFixed(1);
+        const finalValue = points[points.length - 1].value;
+
+        return `
+          <div class="trade-chart">
+            <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Cumulative profit and loss chart">
+              <defs>
+                <linearGradient id="tradeLineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#20d8e8"></stop>
+                  <stop offset="55%" stop-color="#9065ff"></stop>
+                  <stop offset="100%" stop-color="#f052c8"></stop>
+                </linearGradient>
+              </defs>
+              <line class="chart-zero" x1="${pad}" y1="${zeroY}" x2="${width - pad}" y2="${zeroY}"></line>
+              <polyline class="chart-line" points="${linePoints}"></polyline>
+              ${points.map(point => {
+                const tone = point.pnl > 0 ? "win" : point.pnl < 0 ? "loss" : "flat";
+                const label = `${point.symbol} ${point.exitDate} | P/L ${formatMoney(point.pnl)} | Total ${formatMoney(point.value)}`;
+                return `<circle class="chart-dot ${tone}" cx="${xFor(point.index).toFixed(1)}" cy="${yFor(point.value).toFixed(1)}" r="6"><title>${escapeHtml(label)}</title></circle>`;
+              }).join("")}
+              <text class="chart-label" x="${pad}" y="18">${escapeHtml(formatMoney(maxValue))}</text>
+              <text class="chart-label" x="${pad}" y="${height - 8}">${escapeHtml(formatMoney(minValue))}</text>
+              <text class="chart-label" x="${width - pad}" y="18" text-anchor="end">Now ${escapeHtml(formatMoney(finalValue))}</text>
+            </svg>
+          </div>
+        `;
+      }
+
+      function formatMoney(value) {
+        const amount = Number(value);
+
+        if (!Number.isFinite(amount)) return "0";
+
+        return amount.toLocaleString("en-US", {
+          maximumFractionDigits: 2
+        });
       }
 
       function renderCvLink(value) {
