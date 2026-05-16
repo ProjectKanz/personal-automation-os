@@ -520,7 +520,7 @@ function buildWebAppTopSectors_(rows) {
 
 
   rows.forEach(row => {
-    const sector = row.category || inferWebAppSector_(row);
+    const sector = inferWebAppSector_(row);
     counts[sector] = (counts[sector] || 0) + 1;
   });
 
@@ -531,12 +531,15 @@ function buildWebAppTopSectors_(rows) {
       count: counts[sector]
     }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-    .slice(0, 4);
+    .slice(0, 8);
 }
 
 
 function inferWebAppSector_(row) {
+  const category = String(row.category || "").trim();
+  const categoryLower = category.toLowerCase();
   const text = [
+    category,
     row.companyName,
     row.jobTitle,
     row.cvVersion,
@@ -544,15 +547,63 @@ function inferWebAppSector_(row) {
   ].join(" ").toLowerCase();
 
 
-  if (/bank|finance|financial|idx|ocbc|bca|bri|bni|mandiri/.test(text)) return "Banking/Finance";
-  if (/data|analyst|analytics|bi\b|automation/.test(text)) return "Data/Automation";
-  if (/marketing|brand|sales|commercial|growth/.test(text)) return "Marketing/Commercial";
-  if (/tech|digital|software|engineer|developer|it\b/.test(text)) return "Tech/Digital";
-  if (/fmcg|retail|consumer|unilever|coca|nestle|indofood/.test(text)) return "FMCG/Retail";
-  if (/logistic|transport|supply|warehouse/.test(text)) return "Logistics/Transport";
+  if (category && !/^(other|unmapped|mt|management trainee|graduate trainee|project management)$/i.test(categoryLower)) {
+    const normalizedCategory = normalizeWebAppSectorFromCategory_(category);
+
+
+    if (normalizedCategory) {
+      return normalizedCategory;
+    }
+  }
+
+
+  if (/astra\s*credit|\bacc\b|adira|fif\s*group|bfi\s*finance|oto\s*finance|mega\s*finance|mandiri\s*tunas|automotive\s*finance|car\s*finance/.test(text)) return "Automotive Finance";
+  if (/bank|ocbc|bca|bri|bni|btn|mandiri|cimb|danamon|permata|maybank|uob|hsbc|idx|stock\s*exchange|securities|broker|investment|asset\s*management|wealth|financial|finance/.test(text)) return "Banking/Capital Markets";
+  if (/sampoerna|philip\s*morris|philip\s*moris|tobacco|rokok|hm\s*sampoerna|pmi\s*career|djarum|gudang\s*garam|korea\s*tomorrow/.test(text)) return "Tobacco/FMCG";
+  if (/unilever|coca|ccep|nestle|indofood|mayora|wings|danone|p&g|procter|consumer\s*goods|fmcg|beverage|food/.test(text)) return "FMCG/Food & Beverage";
+  if (/map|retail|store|merchandis|fashion|apparel|mall|ecommerce|commerce|shop|marketplace/.test(text)) return "Retail/E-Commerce";
+  if (/adecco|recruitment|headhunter|staffing|human\s*resource|hr\b|talent\s*acquisition|outsourcing/.test(text)) return "Recruitment/HR Services";
+  if (/data|analyst|analytics|business\s*intelligence|\bbi\b|automation|machine\s*learning|ai\b|dashboard|reporting/.test(text)) return "Data/Analytics";
+  if (/software|developer|engineer|engineering|programmer|frontend|backend|fullstack|cloud|devops|it\b|information\s*technology|digital|tech|huawei|siemens|telkom|gojek|tokopedia|shopee|grab|traveloka|bukalapak/.test(text)) return "Technology/Digital";
+  if (/marketing|brand|growth|campaign|commercial|sales|business\s*development|account\s*executive|partnership|customer\s*success/.test(text)) return "Marketing/Commercial";
+  if (/logistic|transport|shipping|supply\s*chain|warehouse|procurement|purchasing|inventory|deliveree|transjakarta|freight|distribution/.test(text)) return "Logistics/Supply Chain";
+  if (/mining|coal|nickel|oil|gas|energy|renewable|geothermal|petro|pertamina|pln|adaro|vale|freeport/.test(text)) return "Energy/Mining";
+  if (/property|real\s*estate|construction|developer|building|civil|architecture|contractor|infrastructure|tower\s*bersama|\btbg\b|telecom\s*infrastructure/.test(text)) return "Property/Infrastructure";
+  if (/hospital|health|medical|pharma|clinic|medicine|healthcare|kimia\s*farma|kalbe|biofarma/.test(text)) return "Healthcare/Pharma";
+  if (/manufactur|factory|industrial|plant|production|quality\s*control|qa\b|qc\b|operations|operator/.test(text)) return "Manufacturing/Industrial";
+  if (/consult|advisory|research|nielsen|abeam|accenture|deloitte|pwc|kpmg|ey|mckinsey|bcg|bain/.test(text)) return "Consulting/Research";
+  if (/government|ministry|kementerian|bumn|state\s*owned|public\s*sector|ojk|bi\b|bank\s*indonesia/.test(text)) return "Government/Public Sector";
+  if (/education|school|university|campus|academy|learning|training|course/.test(text)) return "Education/Training";
+  if (/hotel|tourism|travel|hospitality|restaurant|f&b|cafe|resort/.test(text)) return "Hospitality/Travel";
+  if (/media|creative|content|design|advertising|agency|production|social\s*media/.test(text)) return "Media/Creative";
 
 
   return "Other";
+}
+
+
+function normalizeWebAppSectorFromCategory_(category) {
+  const lower = String(category || "").trim().toLowerCase();
+
+
+  if (/bank|finance|financial|capital|investment|securities/.test(lower)) return "Banking/Capital Markets";
+  if (/automotive|auto|car/.test(lower)) return "Automotive Finance";
+  if (/fmcg|consumer|food|beverage|tobacco/.test(lower)) return "FMCG/Food & Beverage";
+  if (/retail|commerce|marketplace/.test(lower)) return "Retail/E-Commerce";
+  if (/data|analytics|business\s*intelligence|automation/.test(lower)) return "Data/Analytics";
+  if (/tech|digital|software|it|engineering/.test(lower)) return "Technology/Digital";
+  if (/marketing|sales|commercial|business\s*development/.test(lower)) return "Marketing/Commercial";
+  if (/logistic|supply|procurement|transport/.test(lower)) return "Logistics/Supply Chain";
+  if (/energy|mining|oil|gas/.test(lower)) return "Energy/Mining";
+  if (/property|construction|infrastructure|telecom/.test(lower)) return "Property/Infrastructure";
+  if (/health|pharma|medical/.test(lower)) return "Healthcare/Pharma";
+  if (/manufactur|industrial|operations/.test(lower)) return "Manufacturing/Industrial";
+  if (/consult|research|advisory/.test(lower)) return "Consulting/Research";
+  if (/government|public|bumn/.test(lower)) return "Government/Public Sector";
+  if (/education|training/.test(lower)) return "Education/Training";
+
+
+  return "";
 }
 
 
