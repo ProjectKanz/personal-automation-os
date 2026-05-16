@@ -70,7 +70,7 @@ function updateWebHabitNote(activityName, noteText) {
 }
 
 
-function addWebApplication(companyName, jobTitle, status, notes, jobPostingLink, cvFile) {
+function addWebApplication(companyName, jobTitle, status, notes, jobPostingLink, cvFile, dateAppliedValue) {
   const safeNotes = notes && notes.toString().trim() !== ""
     ? notes
     : "Added from web app";
@@ -93,8 +93,15 @@ function addWebApplication(companyName, jobTitle, status, notes, jobPostingLink,
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Applications");
   const targetRow = findLatestWebApplicationRow_(sheet, parsed.company, parsed.role);
+  const dateApplied = parseWebAppDate_(dateAppliedValue);
 
 
+  if (!dateApplied) {
+    throw new Error("Date applied is required.");
+  }
+
+
+  sheet.getRange(targetRow, APPLICATIONS_COL.DATE_APPLIED + 1).setValue(dateApplied);
   sheet.getRange(targetRow, APPLICATIONS_COL.LINK_JOB_POSTING + 1).setValue(jobPostingLink || "");
   sheet.getRange(targetRow, APPLICATIONS_COL.CV_VERSION + 1).setValue(cvUrl);
 

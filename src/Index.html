@@ -851,6 +851,7 @@
       let dashboardData = null;
       let activeView = "home";
       let careerSearchQuery = "";
+      let applicationDraft = getEmptyApplicationDraft();
       let loadTimer = null;
       let busyAction = false;
       let toastTimer = null;
@@ -1282,29 +1283,34 @@
           <div class="form-grid">
             <label class="field">
               <span class="field-label">Company</span>
-              <input class="note-input" data-app-company placeholder="Company name">
+              <input class="note-input" value="${escapeHtml(applicationDraft.company)}" data-app-company placeholder="Company name">
             </label>
             <label class="field">
               <span class="field-label">Role</span>
-              <input class="note-input" data-app-role placeholder="Job title">
+              <input class="note-input" value="${escapeHtml(applicationDraft.role)}" data-app-role placeholder="Job title">
             </label>
             <label class="field">
               <span class="field-label">Status</span>
               <select class="note-input select-input" data-app-status>
-                ${applicationStatuses.map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`).join("")}
+                ${applicationStatuses.map(status => `<option value="${escapeHtml(status)}" ${status === applicationDraft.status ? "selected" : ""}>${escapeHtml(status)}</option>`).join("")}
               </select>
             </label>
             <label class="field">
+              <span class="field-label">Date Applied</span>
+              <input class="note-input" type="date" value="${escapeHtml(applicationDraft.dateApplied)}" data-app-date-applied>
+            </label>
+            <label class="field">
               <span class="field-label">Job Posting Link</span>
-              <input class="note-input" data-app-job-link placeholder="https://...">
+              <input class="note-input" value="${escapeHtml(applicationDraft.jobLink)}" data-app-job-link placeholder="https://...">
             </label>
             <label class="field wide">
               <span class="field-label">CV PDF</span>
               <input class="note-input" type="file" accept="application/pdf,.pdf" data-app-cv-file>
+              <span class="mini">${applicationDraft.cvFileName ? "Selected: " + escapeHtml(applicationDraft.cvFileName) : "Auto-refresh pauses while this form has unsaved input."}</span>
             </label>
             <label class="field wide">
               <span class="field-label">Notes</span>
-              <input class="note-input" data-app-notes placeholder="Source, context, or next action">
+              <input class="note-input" value="${escapeHtml(applicationDraft.notes)}" data-app-notes placeholder="Source, context, or next action">
             </label>
           </div>
           <div class="form-actions">
@@ -1434,7 +1440,14 @@
 
         const refresh = app.querySelector("[data-refresh]");
         if (refresh) {
-          refresh.addEventListener("click", () => loadDashboard({ silent: true }));
+          refresh.addEventListener("click", () => {
+            if (hasApplicationDraftInput() && !window.confirm("Refresh will clear the selected CV file. Continue?")) {
+              return;
+            }
+
+            applicationDraft.cvFileName = "";
+            loadDashboard({ silent: true });
+          });
         }
 
         app.querySelectorAll("[data-status-action]").forEach(button => {
@@ -1457,6 +1470,8 @@
         if (appAdd) {
           appAdd.addEventListener("click", addApplicationFromWeb);
         }
+
+        bindApplicationDraftInputs();
 
         const appSearch = app.querySelector("[data-app-search]");
         if (appSearch) {
@@ -1491,6 +1506,68 @@
         if (!isBusy) {
           scheduleAutoRefresh();
         }
+      }
+
+      function getEmptyApplicationDraft() {
+        return {
+          company: "",
+          role: "",
+          status: "Saved",
+          dateApplied: getTodayInputDate(),
+          jobLink: "",
+          notes: "",
+          cvFileName: ""
+        };
+      }
+
+      function getTodayInputDate() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function bindApplicationDraftInputs() {
+        const bindings = [
+          ["[data-app-company]", "company"],
+          ["[data-app-role]", "role"],
+          ["[data-app-status]", "status"],
+          ["[data-app-date-applied]", "dateApplied"],
+          ["[data-app-job-link]", "jobLink"],
+          ["[data-app-notes]", "notes"]
+        ];
+
+        bindings.forEach(([selector, key]) => {
+          const input = app.querySelector(selector);
+          if (!input) return;
+
+          input.addEventListener("input", () => {
+            applicationDraft[key] = input.value;
+            scheduleAutoRefresh();
+          });
+
+          input.addEventListener("change", () => {
+            applicationDraft[key] = input.value;
+            scheduleAutoRefresh();
+          });
+        });
+
+        const fileInput = app.querySelector("[data-app-cv-file]");
+        if (fileInput) {
+          fileInput.addEventListener("change", () => {
+            applicationDraft.cvFileName = fileInput.files && fileInput.files[0]
+              ? fileInput.files[0].name
+              : "";
+            scheduleAutoRefresh();
+          });
+        }
+      }
+
+      function hasApplicationDraftInput() {
+        return Boolean(
+          applicationDraft.company.trim() ||
+          applicationDraft.role.trim() ||
+          applicationDraft.jobLink.trim() ||
+          applicationDraft.notes.trim() ||
+          applicationDraft.cvFileName.trim()
+        );
       }
 
       function updateHabitStatus(activity, nextDone) {
@@ -1539,13 +1616,14 @@
         const status = (app.querySelector("[data-app-status]") || {}).value || "";
         const notes = (app.querySelector("[data-app-notes]") || {}).value || "";
         const jobLink = (app.querySelector("[data-app-job-link]") || {}).value || "";
+        const dateApplied = (app.querySelector("[data-app-date-applied]") || {}).value || "";
         const fileInput = app.querySelector("[data-app-cv-file]");
         const cvFile = fileInput && fileInput.files && fileInput.files[0]
           ? fileInput.files[0]
           : null;
 
-        if (!company.trim() || !role.trim() || !status.trim() || !jobLink.trim() || !cvFile) {
-          showToast("Company, role, status, job link, and CV PDF are required.", "error");
+        if (!company.trim() || !role.trim() || !status.trim() || !dateApplied.trim() || !jobLink.trim() || !cvFile) {
+          showToast("Company, role, status, date applied, job link, and CV PDF are required.", "error");
           return;
         }
 
@@ -1565,6 +1643,7 @@
           .withSuccessHandler(data => {
             dashboardData = data || {};
             lastSyncedAt = new Date();
+            applicationDraft = getEmptyApplicationDraft();
             setActionBusy(false);
             showToast("Application added.", "success");
             renderShell();
@@ -1573,7 +1652,7 @@
             setActionBusy(false);
             showToast(error && error.message ? error.message : error, "error");
           })
-          .addWebApplication(company, role, status, notes, jobLink, cvPayload);
+          .addWebApplication(company, role, status, notes, jobLink, cvPayload, dateApplied);
       }
 
       function readFileAsPayload(file) {
@@ -1638,7 +1717,7 @@
       function scheduleAutoRefresh() {
         window.clearTimeout(autoRefreshTimer);
 
-        if (document.hidden || busyAction) return;
+        if (document.hidden || busyAction || hasApplicationDraftInput()) return;
 
         autoRefreshTimer = window.setTimeout(() => {
           loadDashboard({ silent: true });
