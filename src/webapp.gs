@@ -71,11 +71,14 @@ function updateWebHabitNote(activityName, noteText) {
 
 
 function addWebApplication(companyName, jobTitle, status, notes, jobPostingLink, cvFile) {
+  const safeNotes = notes && notes.toString().trim() !== ""
+    ? notes
+    : "Added from web app";
   const input = [
     companyName || "",
     jobTitle || "",
     status || "",
-    notes || ""
+    safeNotes
   ].join(" | ");
   const parsed = parseCareerAddInput_(input);
 
@@ -163,7 +166,7 @@ function getWebApplicationCvFolderId_(fileName) {
   }
 
 
-  throw new Error("CV filename must contain MT or Data so it can be routed to the right Drive folder.");
+  return WEB_APP_DATA_CV_FOLDER_ID;
 }
 
 

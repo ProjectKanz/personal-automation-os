@@ -1544,8 +1544,8 @@
           ? fileInput.files[0]
           : null;
 
-        if (!company.trim() || !role.trim() || !status.trim() || !notes.trim() || !jobLink.trim() || !cvFile) {
-          showToast("Company, role, status, job link, CV PDF, and notes are required.", "error");
+        if (!company.trim() || !role.trim() || !status.trim() || !jobLink.trim() || !cvFile) {
+          showToast("Company, role, status, job link, and CV PDF are required.", "error");
           return;
         }
 
