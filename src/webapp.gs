@@ -27,6 +27,26 @@ function getWebDashboardData() {
 }
 
 
+function getWebTradingDataForRange(startDateValue, endDateValue) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const startDate = parseWebAppDate_(startDateValue);
+  const endDate = parseWebAppDate_(endDateValue);
+
+
+  if (!startDate || !endDate) {
+    throw new Error("Start date and end date are required.");
+  }
+
+
+  if (startDate.getTime() > endDate.getTime()) {
+    throw new Error("Start date must be before end date.");
+  }
+
+
+  return buildWebAppTradingSummaryForRange_(ss, startDate, endDate);
+}
+
+
 function updateWebHabitStatus(activityName, isDone) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const dbSheet = ss.getSheetByName("Daily_DB");
@@ -608,22 +628,33 @@ function normalizeWebAppSectorFromCategory_(category) {
 
 
 function buildWebAppTradingSummary_(ss, today) {
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 6);
+
+
+  return buildWebAppTradingSummaryForRange_(ss, sevenDaysAgo, today);
+}
+
+
+function buildWebAppTradingSummaryForRange_(ss, startDate, endDate) {
   const sheet = ss.getSheetByName("Log");
 
 
   if (!sheet || sheet.getLastRow() < 20) {
     return {
+      startDate: formatWebAppDateInput_(startDate),
+      endDate: formatWebAppDateInput_(endDate),
       closedTrades: 0,
       wins: 0,
       losses: 0,
       winRate: 0,
+      totalPnl: 0,
+      trades: [],
       recent: []
     };
   }
 
 
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setDate(today.getDate() - 6);
   const data = sheet.getRange(20, 2, sheet.getLastRow() - 19, 18).getValues();
   const trades = [];
 
@@ -637,7 +668,8 @@ function buildWebAppTradingSummary_(ss, today) {
 
 
     if (!symbol || !(exitDate instanceof Date) || isNaN(exitDate.getTime())) return;
-    if (exitDate < sevenDaysAgo || exitDate > today) return;
+    const normalizedExitDate = normalizeDateOnly_(exitDate);
+    if (normalizedExitDate < startDate || normalizedExitDate > endDate) return;
     if (status !== "Closed") return;
 
 
@@ -654,13 +686,18 @@ function buildWebAppTradingSummary_(ss, today) {
 
   const wins = trades.filter(trade => trade.pL > 0).length;
   const losses = trades.filter(trade => trade.pL < 0).length;
+  const totalPnl = trades.reduce((sum, trade) => sum + trade.pL, 0);
 
 
   return {
+    startDate: formatWebAppDateInput_(startDate),
+    endDate: formatWebAppDateInput_(endDate),
     closedTrades: trades.length,
     wins: wins,
     losses: losses,
     winRate: calculateWebAppPercentage_(wins, trades.length),
+    totalPnl: totalPnl,
+    trades: trades.slice().reverse(),
     recent: trades.slice(-5).reverse()
   };
 }
@@ -729,6 +766,11 @@ function formatWebAppStatus_(status) {
 
 function formatWebAppDate_(date) {
   return Utilities.formatDate(date, Session.getScriptTimeZone(), "dd MMM");
+}
+
+
+function formatWebAppDateInput_(date) {
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy-MM-dd");
 }
 
 

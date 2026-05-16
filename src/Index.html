@@ -852,6 +852,7 @@
       let activeView = "home";
       let careerSearchQuery = "";
       let applicationDraft = getEmptyApplicationDraft();
+      let tradingRange = getDefaultTradingRange();
       let loadTimer = null;
       let busyAction = false;
       let toastTimer = null;
@@ -1158,9 +1159,27 @@
         const trading = (dashboardData || {}).trading || {};
 
         return `
-          ${renderViewTitle("Trading Journal", "Closed trade activity from the last seven days.")}
+          ${renderViewTitle("Trading Journal", "Closed trade activity from the selected date range.")}
           <section class="grid">
-            ${metricPanel("Closed Trades", trading.closedTrades || 0, "last 7 days", Math.min(100, (trading.closedTrades || 0) * 20), "cyan")}
+            <article class="panel wide">
+              <div class="panel-title">
+                <h3>Date Range</h3>
+                <span class="tag cyan">${escapeHtml(trading.startDate || tradingRange.startDate)} to ${escapeHtml(trading.endDate || tradingRange.endDate)}</span>
+              </div>
+              <div class="form-grid">
+                <label>
+                  From
+                  <input class="note-input" type="date" value="${escapeHtml(tradingRange.startDate)}" data-trading-start>
+                </label>
+                <label>
+                  To
+                  <input class="note-input" type="date" value="${escapeHtml(tradingRange.endDate)}" data-trading-end>
+                </label>
+              </div>
+            </article>
+          </section>
+          <section class="grid">
+            ${metricPanel("Closed Trades", trading.closedTrades || 0, "selected range", Math.min(100, (trading.closedTrades || 0) * 20), "cyan")}
             ${metricPanel("Wins", trading.wins || 0, `${trading.winRate || 0}% win rate`, trading.winRate || 0, "green")}
             ${metricPanel("Losses", trading.losses || 0, "review queue", Math.min(100, (trading.losses || 0) * 25), "pink")}
           </section>
@@ -1170,7 +1189,7 @@
                 <h3>Recent Trades</h3>
                 <span class="tag green">${trading.winRate || 0}% WR</span>
               </div>
-              <div class="list scroll">${renderTrades(trading.recent)}</div>
+              <div class="list scroll">${renderTrades(trading.trades || trading.recent)}</div>
             </article>
           </section>
         `;
@@ -1496,6 +1515,21 @@
             updateApplicationStatus(rowIndex, company, role, statusInput ? statusInput.value : "");
           });
         });
+
+        const tradingStart = app.querySelector("[data-trading-start]");
+        const tradingEnd = app.querySelector("[data-trading-end]");
+        if (tradingStart) {
+          tradingStart.addEventListener("change", event => {
+            tradingRange.startDate = event.target.value;
+            loadTradingRange();
+          });
+        }
+        if (tradingEnd) {
+          tradingEnd.addEventListener("change", event => {
+            tradingRange.endDate = event.target.value;
+            loadTradingRange();
+          });
+        }
       }
 
       function setActionBusy(isBusy) {
@@ -1713,6 +1747,42 @@
             showToast(error && error.message ? error.message : error, "error");
           })
           .updateWebApplicationStatus(rowIndex, company, role, status);
+      }
+
+      function loadTradingRange() {
+        if (busyAction || !tradingRange.startDate || !tradingRange.endDate) return;
+        setActionBusy(true);
+
+        google.script.run
+          .withSuccessHandler(tradingData => {
+            dashboardData = Object.assign({}, dashboardData, { trading: tradingData || {} });
+            lastSyncedAt = new Date();
+            setActionBusy(false);
+            renderShell();
+          })
+          .withFailureHandler(error => {
+            setActionBusy(false);
+            showToast(error && error.message ? error.message : error, "error");
+          })
+          .getWebTradingDataForRange(tradingRange.startDate, tradingRange.endDate);
+      }
+
+      function getDefaultTradingRange() {
+        const end = new Date();
+        const start = new Date(end);
+        start.setDate(end.getDate() - 6);
+
+        return {
+          startDate: toDateInputValue(start),
+          endDate: toDateInputValue(end)
+        };
+      }
+
+      function toDateInputValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
       }
 
       function showToast(message, type) {
