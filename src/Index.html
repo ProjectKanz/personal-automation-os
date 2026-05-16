@@ -5,34 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       :root {
-        --bg: #111226;
-        --panel: #202042;
-        --panel-2: #2d2a58;
-        --panel-3: #3a3467;
-        --line: rgba(255, 255, 255, 0.1);
-        --text: #f5f7ff;
-        --muted: #aeb5d8;
-        --cyan: #22d8e8;
-        --pink: #ff4ac7;
-        --violet: #8f5dff;
-        --green: #5df2a1;
+        --page: #101124;
+        --ink: #f7f8ff;
+        --muted: #aeb6d9;
+        --soft: #d8ddff;
+        --line: rgba(255, 255, 255, 0.11);
+        --line-strong: rgba(255, 255, 255, 0.18);
+        --panel: rgba(39, 38, 78, 0.9);
+        --panel-2: rgba(54, 49, 101, 0.9);
+        --panel-3: rgba(26, 27, 58, 0.92);
+        --nav: rgba(62, 53, 111, 0.88);
+        --cyan: #20d8e8;
+        --pink: #f052c8;
+        --violet: #9065ff;
+        --green: #63eda8;
         --amber: #ffd166;
         --red: #ff6b7a;
-        --shadow: 0 24px 80px rgba(16, 12, 42, 0.48);
+        --shadow: 0 26px 86px rgba(10, 9, 32, 0.5);
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        min-height: 100%;
+      }
+
       body {
         margin: 0;
         min-height: 100vh;
+        color: var(--ink);
         background:
-          radial-gradient(circle at top left, rgba(143, 93, 255, 0.38), transparent 34rem),
-          radial-gradient(circle at bottom right, rgba(34, 216, 232, 0.18), transparent 32rem),
-          linear-gradient(135deg, #8a63dd 0%, #b77ee8 42%, #181936 42%, #121326 100%);
-        color: var(--text);
+          radial-gradient(circle at 9% 7%, rgba(32, 216, 232, 0.2), transparent 28rem),
+          radial-gradient(circle at 87% 16%, rgba(240, 82, 200, 0.26), transparent 30rem),
+          linear-gradient(135deg, #8b65df 0%, #b97be6 34%, #14142e 34%, #101124 100%);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         letter-spacing: 0;
       }
@@ -42,202 +49,330 @@
         font: inherit;
       }
 
-      .shell {
-        width: min(1180px, calc(100vw - 28px));
-        min-height: calc(100vh - 48px);
-        margin: 24px auto;
-        display: grid;
-        grid-template-columns: 72px 220px minmax(0, 1fr) 280px;
-        background: rgba(18, 19, 44, 0.94);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
+      button {
+        cursor: pointer;
       }
 
-      .rail {
-        background: #181633;
-        border-right: 1px solid var(--line);
-        padding: 14px 10px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .brand-dot {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
+      .loading {
+        min-height: 100vh;
         display: grid;
         place-items: center;
         color: #fff;
         font-weight: 800;
-        background: conic-gradient(from 210deg, var(--pink), var(--violet), var(--cyan), var(--pink));
-        box-shadow: 0 0 28px rgba(255, 74, 199, 0.45);
       }
 
-      .rail-button {
-        width: 42px;
-        height: 42px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 50%;
-        background: #242245;
-        color: var(--muted);
+      .loading-card {
+        width: min(420px, calc(100vw - 32px));
+        padding: 26px;
+        border-radius: 10px;
+        background: rgba(22, 23, 51, 0.9);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .loader-line {
+        height: 8px;
+        margin-top: 18px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .loader-line span {
+        display: block;
+        width: 42%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
+        animation: loadingSlide 1.3s ease-in-out infinite;
+      }
+
+      @keyframes loadingSlide {
+        0% { transform: translateX(-110%); }
+        100% { transform: translateX(260%); }
+      }
+
+      .shell {
+        width: min(1500px, calc(100vw - 28px));
+        min-height: calc(100vh - 48px);
+        margin: 24px auto;
+        display: grid;
+        grid-template-columns: 72px 230px minmax(0, 1fr) 320px;
+        overflow: hidden;
+        border-radius: 14px;
+        background: rgba(15, 16, 38, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        box-shadow: var(--shadow);
+      }
+
+      .rail {
+        padding: 18px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        align-items: center;
+        background: #15142f;
+        border-right: 1px solid var(--line);
+      }
+
+      .brand-dot,
+      .rail-button,
+      .avatar {
         display: grid;
         place-items: center;
       }
 
+      .brand-dot {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        font-weight: 900;
+        background: conic-gradient(from 230deg, var(--pink), var(--violet), var(--cyan), var(--pink));
+        box-shadow: 0 0 34px rgba(240, 82, 200, 0.48);
+      }
+
+      .rail-button {
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.06);
+        transition: transform 160ms ease, border-color 160ms ease, color 160ms ease;
+      }
+
+      .rail-button:hover,
       .rail-button.active {
         color: #fff;
-        background: linear-gradient(145deg, #25c9e6, #8d58ff 54%, #f34fc3);
+        border-color: rgba(255, 255, 255, 0.22);
+        transform: translateY(-1px);
+      }
+
+      .rail-button.active {
+        background: linear-gradient(145deg, var(--cyan), var(--violet) 55%, var(--pink));
       }
 
       .side {
-        background: rgba(59, 50, 103, 0.76);
-        padding: 18px 12px;
+        padding: 22px 14px;
+        background: var(--nav);
         border-right: 1px solid var(--line);
       }
 
       .section-label {
-        color: #dfe5ff;
-        font-size: 12px;
-        font-weight: 700;
-        margin: 0 0 12px;
+        margin: 0 0 14px;
+        color: #e6e9ff;
+        font-size: 13px;
+        font-weight: 800;
       }
 
       .nav {
         display: grid;
-        gap: 6px;
+        gap: 7px;
       }
 
       .nav-item {
+        width: 100%;
+        min-height: 44px;
         display: grid;
-        grid-template-columns: 24px 1fr;
+        grid-template-columns: 28px 1fr;
         align-items: center;
-        min-height: 36px;
-        padding: 0 10px;
-        border-radius: 6px;
-        color: #d7dcfb;
-        font-size: 13px;
+        padding: 0 12px;
+        color: #e0e3ff;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 7px;
+        text-align: left;
+        transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+      }
+
+      .nav-item:hover,
+      .nav-item.active {
+        background: rgba(255, 255, 255, 0.11);
+        border-color: rgba(255, 255, 255, 0.08);
       }
 
       .nav-item.active {
-        background: rgba(255, 255, 255, 0.11);
         color: #fff;
+        box-shadow: inset 3px 0 0 var(--cyan);
       }
 
       .main {
         min-width: 0;
-        padding: 16px 18px 22px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 18px;
+        padding: 20px 22px 26px;
       }
 
       .topbar {
         display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 14px;
+        grid-template-columns: 1fr auto auto;
+        gap: 12px;
         align-items: center;
       }
 
-      .search {
-        height: 34px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: #181936;
-        color: var(--muted);
-        border-radius: 6px;
+      .status-pill,
+      .action-button,
+      .tag {
+        border-radius: 999px;
+      }
+
+      .status-pill {
+        min-height: 42px;
         display: flex;
         align-items: center;
-        padding: 0 12px;
-        font-size: 12px;
+        gap: 10px;
+        padding: 0 14px;
+        color: #cfd6ff;
+        background: rgba(13, 15, 40, 0.62);
+        border: 1px solid var(--line);
+        overflow: hidden;
       }
 
+      .pulse {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 18px rgba(99, 237, 168, 0.7);
+      }
+
+      .status-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      .action-button,
       .open-link {
+        min-height: 42px;
+        padding: 0 15px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--line-strong);
         text-decoration: none;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 6px;
-        padding: 8px 11px;
-        font-size: 12px;
+        font-size: 13px;
         white-space: nowrap;
       }
 
+      .action-button:hover,
+      .open-link:hover {
+        background: rgba(255, 255, 255, 0.13);
+      }
+
       .hero {
-        min-height: 140px;
-        border-radius: 10px;
-        padding: 24px;
+        min-height: 166px;
         position: relative;
-        overflow: hidden;
         display: grid;
-        align-content: center;
+        align-items: end;
+        overflow: hidden;
+        padding: 26px 30px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
         background:
-          linear-gradient(110deg, rgba(31, 33, 74, 0.88), rgba(41, 35, 88, 0.7)),
-          radial-gradient(circle at 80% 28%, rgba(34, 216, 232, 0.8), transparent 19rem),
-          radial-gradient(circle at 34% 20%, rgba(255, 74, 199, 0.74), transparent 14rem),
-          linear-gradient(135deg, #242449, #181936);
+          linear-gradient(110deg, rgba(34, 34, 78, 0.94), rgba(33, 42, 89, 0.76)),
+          radial-gradient(circle at 78% 30%, rgba(32, 216, 232, 0.76), transparent 18rem),
+          radial-gradient(circle at 35% 20%, rgba(240, 82, 200, 0.48), transparent 15rem),
+          linear-gradient(135deg, #23234d, #151732);
       }
 
       .hero:before,
       .hero:after {
         content: "";
         position: absolute;
-        border-radius: 24px;
+        opacity: 0.9;
         transform: rotate(-18deg);
-        opacity: 0.85;
       }
 
       .hero:before {
-        width: 118px;
-        height: 84px;
-        right: 120px;
-        top: 28px;
-        background: linear-gradient(135deg, var(--cyan), rgba(255, 255, 255, 0.12));
+        width: 150px;
+        height: 104px;
+        top: 34px;
+        right: 150px;
+        border-radius: 26px;
+        background: linear-gradient(135deg, rgba(32, 216, 232, 0.85), rgba(255, 255, 255, 0.1));
       }
 
       .hero:after {
-        width: 92px;
-        height: 92px;
-        right: 44px;
-        top: 24px;
-        background: linear-gradient(135deg, var(--pink), var(--violet));
+        width: 108px;
+        height: 108px;
+        top: 36px;
+        right: 62px;
         border-radius: 50%;
+        background: linear-gradient(135deg, var(--pink), var(--violet));
       }
 
       .hero-content {
         position: relative;
         z-index: 1;
-        max-width: 460px;
+        max-width: 600px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #dce3ff;
+        font-size: 12px;
+        font-weight: 800;
       }
 
       h1 {
         margin: 0;
-        font-size: 30px;
-        line-height: 1.08;
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1.03;
         letter-spacing: 0;
       }
 
       .sub {
-        margin: 8px 0 0;
-        color: #d7dcfb;
+        margin: 10px 0 0;
+        max-width: 520px;
+        color: #d9defd;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .view-title {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .view-title h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .view-title p {
+        margin: 4px 0 0;
+        color: var(--muted);
         font-size: 13px;
       }
 
       .grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+        gap: 16px;
+      }
+
+      .grid.two {
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
       }
 
       .panel {
         min-width: 0;
-        border-radius: 8px;
-        background: linear-gradient(180deg, rgba(53, 49, 98, 0.96), rgba(35, 34, 70, 0.96));
-        border: 1px solid rgba(255, 255, 255, 0.11);
-        padding: 14px;
-        box-shadow: 0 16px 42px rgba(5, 5, 18, 0.22);
+        border-radius: 9px;
+        padding: 16px;
+        background:
+          linear-gradient(180deg, rgba(60, 55, 111, 0.9), rgba(34, 34, 72, 0.94));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 16px 46px rgba(7, 8, 26, 0.24);
       }
 
       .panel-title {
@@ -245,24 +380,28 @@
         justify-content: space-between;
         gap: 12px;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
       }
 
-      h2 {
+      h3 {
         margin: 0;
-        font-size: 14px;
+        font-size: 15px;
         line-height: 1.2;
       }
 
       .mini {
         color: var(--muted);
-        font-size: 11px;
+        font-size: 12px;
       }
 
       .metric {
-        font-size: 30px;
-        font-weight: 800;
+        font-size: 38px;
+        font-weight: 900;
         line-height: 1;
+      }
+
+      .metric.compact {
+        font-size: 30px;
       }
 
       .metric-row {
@@ -273,36 +412,47 @@
       }
 
       .progress {
-        height: 8px;
-        background: rgba(255, 255, 255, 0.11);
-        border-radius: 999px;
+        height: 9px;
+        margin-top: 14px;
         overflow: hidden;
-        margin-top: 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.11);
       }
 
       .progress span {
         display: block;
         height: 100%;
-        width: 0%;
+        min-width: 0;
         border-radius: inherit;
         background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
       }
 
       .list {
         display: grid;
-        gap: 8px;
+        gap: 10px;
+      }
+
+      .list.scroll {
+        max-height: 440px;
+        overflow: auto;
+        padding-right: 4px;
       }
 
       .list-item {
+        min-height: 54px;
         display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
         align-items: center;
-        min-height: 42px;
-        padding: 9px 10px;
+        padding: 11px 13px;
+        border-radius: 8px;
         background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .list-item:hover {
+        border-color: rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.085);
       }
 
       .item-main {
@@ -310,40 +460,44 @@
       }
 
       .item-title {
-        font-size: 13px;
-        font-weight: 700;
-        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 800;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .item-sub {
-        margin-top: 3px;
+        margin-top: 4px;
         color: var(--muted);
-        font-size: 11px;
-        white-space: nowrap;
+        font-size: 12px;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .tag {
-        border-radius: 999px;
-        padding: 4px 8px;
+        padding: 5px 9px;
         color: #fff;
-        background: rgba(34, 216, 232, 0.18);
-        border: 1px solid rgba(34, 216, 232, 0.28);
-        font-size: 10px;
+        border: 1px solid rgba(32, 216, 232, 0.3);
+        background: rgba(32, 216, 232, 0.16);
+        font-size: 11px;
         white-space: nowrap;
       }
 
       .tag.pink {
-        background: rgba(255, 74, 199, 0.16);
-        border-color: rgba(255, 74, 199, 0.28);
+        border-color: rgba(240, 82, 200, 0.34);
+        background: rgba(240, 82, 200, 0.18);
       }
 
       .tag.green {
-        background: rgba(93, 242, 161, 0.16);
-        border-color: rgba(93, 242, 161, 0.28);
+        border-color: rgba(99, 237, 168, 0.32);
+        background: rgba(99, 237, 168, 0.16);
+      }
+
+      .tag.amber {
+        border-color: rgba(255, 209, 102, 0.3);
+        background: rgba(255, 209, 102, 0.14);
       }
 
       .wide {
@@ -351,61 +505,59 @@
       }
 
       .right {
-        background: rgba(26, 26, 57, 0.92);
-        border-left: 1px solid var(--line);
-        padding: 18px 14px;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 16px;
+        padding: 22px 18px;
+        background: var(--panel-3);
+        border-left: 1px solid var(--line);
       }
 
       .profile {
+        padding: 10px 0 8px;
         text-align: center;
-        padding: 10px 4px 4px;
       }
 
       .avatar {
-        width: 86px;
-        height: 86px;
-        margin: 0 auto 10px;
+        width: 94px;
+        height: 94px;
+        margin: 0 auto 12px;
         border-radius: 50%;
-        display: grid;
-        place-items: center;
         color: #fff;
-        font-size: 28px;
-        font-weight: 900;
+        font-size: 30px;
+        font-weight: 950;
         background:
-          linear-gradient(#191a38, #191a38) padding-box,
+          linear-gradient(#151733, #151733) padding-box,
           conic-gradient(var(--cyan), var(--violet), var(--pink), var(--cyan)) border-box;
         border: 3px solid transparent;
-        box-shadow: 0 0 42px rgba(34, 216, 232, 0.22);
+        box-shadow: 0 0 44px rgba(32, 216, 232, 0.24);
       }
 
       .profile-name {
-        font-weight: 800;
-        font-size: 14px;
+        font-size: 15px;
+        font-weight: 900;
       }
 
       .profile-sub {
+        margin-top: 4px;
         color: var(--muted);
-        font-size: 11px;
-        margin-top: 3px;
+        font-size: 12px;
       }
 
       .sector-bar {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 10px;
+        gap: 12px;
         align-items: center;
         font-size: 12px;
       }
 
       .sector-track {
-        height: 7px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 999px;
+        height: 8px;
+        margin-top: 7px;
         overflow: hidden;
-        margin-top: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.11);
       }
 
       .sector-track span {
@@ -414,49 +566,55 @@
         background: linear-gradient(90deg, var(--amber), var(--pink));
       }
 
-      .empty {
-        color: var(--muted);
-        font-size: 12px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 7px;
-      }
-
       .audit-text {
-        color: #d8dcfb;
-        font-size: 12px;
-        line-height: 1.5;
-        max-height: 220px;
-        overflow: hidden;
+        max-height: 320px;
+        overflow: auto;
+        color: #dfe3ff;
+        font-size: 13px;
+        line-height: 1.55;
         white-space: pre-wrap;
       }
 
-      .loading {
-        min-height: 60vh;
-        display: grid;
-        place-items: center;
-        color: #fff;
-        font-weight: 700;
+      .empty {
+        padding: 14px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
+        font-size: 13px;
       }
 
-      @media (max-width: 980px) {
+      .mobile-tabs {
+        display: none;
+      }
+
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+      }
+
+      @media (max-width: 1160px) {
         .shell {
-          grid-template-columns: 64px minmax(0, 1fr);
+          grid-template-columns: 68px 210px minmax(0, 1fr);
         }
 
-        .side,
         .right {
           display: none;
         }
-
-        .grid {
-          grid-template-columns: 1fr 1fr;
-        }
       }
 
-      @media (max-width: 640px) {
+      @media (max-width: 860px) {
         body {
-          background: #121326;
+          background: #101124;
         }
 
         .shell {
@@ -468,7 +626,8 @@
           grid-template-columns: 1fr;
         }
 
-        .rail {
+        .rail,
+        .side {
           display: none;
         }
 
@@ -477,24 +636,47 @@
         }
 
         .topbar {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr auto;
+        }
+
+        .open-link {
+          display: none;
+        }
+
+        .mobile-tabs {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+
+        .mobile-tab {
+          flex: 0 0 auto;
+          min-height: 36px;
+          padding: 0 12px;
+          border-radius: 999px;
+          border: 1px solid var(--line);
+          background: rgba(255, 255, 255, 0.07);
+          color: var(--soft);
+        }
+
+        .mobile-tab.active {
+          color: #fff;
+          background: linear-gradient(135deg, rgba(32, 216, 232, 0.34), rgba(240, 82, 200, 0.22));
         }
 
         .hero {
-          min-height: 132px;
-          padding: 18px;
+          min-height: 146px;
+          padding: 20px;
         }
 
         .hero:before,
         .hero:after {
-          opacity: 0.5;
+          opacity: 0.45;
         }
 
-        h1 {
-          font-size: 24px;
-        }
-
-        .grid {
+        .grid,
+        .grid.two {
           grid-template-columns: 1fr;
         }
 
@@ -502,24 +684,69 @@
           grid-column: auto;
         }
       }
+
+      @media (max-width: 520px) {
+        .topbar {
+          grid-template-columns: 1fr;
+        }
+
+        .action-button {
+          width: 100%;
+        }
+
+        .hero:before,
+        .hero:after {
+          display: none;
+        }
+
+        .item-title,
+        .item-sub {
+          white-space: normal;
+        }
+      }
     </style>
   </head>
   <body>
-    <div id="app" class="loading">Loading dashboard...</div>
+    <div id="app" class="loading">
+      <div class="loading-card">
+        Loading command center
+        <div class="loader-line"><span></span></div>
+      </div>
+    </div>
 
     <script>
       const app = document.getElementById("app");
+      const views = [
+        { id: "home", label: "Home", icon: "⌂" },
+        { id: "habit", label: "Habit", icon: "✓" },
+        { id: "career", label: "Career", icon: "↗" },
+        { id: "trading", label: "Trading", icon: "◇" },
+        { id: "audit", label: "AI Audit", icon: "✦" }
+      ];
+      let dashboardData = null;
+      let activeView = "home";
+      let loadTimer = null;
 
-      const loadTimer = window.setTimeout(() => {
-        renderError({
-          message: "Dashboard data request timed out. Refresh once; if it keeps happening, the Apps Script data function needs attention."
-        });
-      }, 25000);
+      loadDashboard();
 
-      google.script.run
-        .withSuccessHandler(renderDashboard)
-        .withFailureHandler(renderError)
-        .getWebDashboardData();
+      function loadDashboard() {
+        renderLoading("Loading command center");
+        window.clearTimeout(loadTimer);
+        loadTimer = window.setTimeout(() => {
+          renderError({
+            message: "Dashboard data request timed out. Refresh once; if it keeps happening, check Apps Script executions."
+          });
+        }, 25000);
+
+        google.script.run
+          .withSuccessHandler(data => {
+            window.clearTimeout(loadTimer);
+            dashboardData = data || {};
+            renderShell();
+          })
+          .withFailureHandler(renderError)
+          .getWebDashboardData();
+      }
 
       function escapeHtml(value) {
         return String(value ?? "")
@@ -530,96 +757,64 @@
           .replace(/'/g, "&#039;");
       }
 
-      function renderDashboard(data) {
-        window.clearTimeout(loadTimer);
+      function renderLoading(message) {
+        app.className = "loading";
+        app.innerHTML = `
+          <div class="loading-card">
+            ${escapeHtml(message)}
+            <div class="loader-line"><span></span></div>
+          </div>
+        `;
+      }
+
+      function renderShell() {
+        const data = dashboardData || {};
         const habit = data.habit || {};
         const career = data.career || {};
-        const trading = data.trading || {};
         const audit = data.audit || {};
 
         app.className = "shell";
         app.innerHTML = `
           <aside class="rail">
             <div class="brand-dot">K</div>
-            <div class="rail-button active">⌂</div>
-            <div class="rail-button">◈</div>
-            <div class="rail-button">◌</div>
-            <div class="rail-button">＋</div>
+            ${views.map(view => `
+              <button class="rail-button ${view.id === activeView ? "active" : ""}" data-view="${view.id}" title="${escapeHtml(view.label)}">
+                ${escapeHtml(view.icon)}
+              </button>
+            `).join("")}
           </aside>
 
           <aside class="side">
             <p class="section-label">Explore</p>
             <nav class="nav">
-              <div class="nav-item active"><span>⌂</span><span>Home</span></div>
-              <div class="nav-item"><span>✓</span><span>Habit</span></div>
-              <div class="nav-item"><span>↗</span><span>Career</span></div>
-              <div class="nav-item"><span>◇</span><span>Trading</span></div>
-              <div class="nav-item"><span>✦</span><span>AI Audit</span></div>
+              ${views.map(view => `
+                <button class="nav-item ${view.id === activeView ? "active" : ""}" data-view="${view.id}">
+                  <span>${escapeHtml(view.icon)}</span>
+                  <span>${escapeHtml(view.label)}</span>
+                </button>
+              `).join("")}
             </nav>
           </aside>
 
           <main class="main">
             <div class="topbar">
-              <div class="search">Personal Productivity OS · ${escapeHtml(data.generatedAt)}</div>
-              <a class="open-link" href="${escapeHtml(data.spreadsheetUrl)}" target="_blank">Open Sheet</a>
+              <div class="status-pill">
+                <span class="pulse"></span>
+                <span class="status-text">Personal Productivity OS · ${escapeHtml(data.generatedAt || "Live")}</span>
+              </div>
+              <button class="action-button" data-refresh="true">Refresh</button>
+              <a class="open-link" href="${escapeHtml(data.spreadsheetUrl || "#")}" target="_blank">Open Sheet</a>
             </div>
 
-            <section class="hero">
-              <div class="hero-content">
-                <h1>Kanzan Command Center</h1>
-                <p class="sub">Daily execution, career pipeline, trading log, and AI audit in one operating view.</p>
-              </div>
-            </section>
+            <div class="mobile-tabs">
+              ${views.map(view => `
+                <button class="mobile-tab ${view.id === activeView ? "active" : ""}" data-view="${view.id}">
+                  ${escapeHtml(view.label)}
+                </button>
+              `).join("")}
+            </div>
 
-            <section class="grid">
-              ${metricPanel("Today's Habits", `${habit.done || 0}/${habit.total || 0}`, `${habit.percentage || 0}% complete`, habit.percentage || 0)}
-              ${metricPanel("Weekly Rhythm", `${habit.weeklyDone || 0}/${habit.weeklyTotal || 0}`, `${habit.weeklyPercentage || 0}% last 7 days`, habit.weeklyPercentage || 0)}
-              ${metricPanel("Career Pipeline", career.totalApplications || 0, `${career.followUpsDue || 0} follow-ups due`, Math.min(100, career.totalApplications || 0))}
-
-              <article class="panel wide">
-                <div class="panel-title">
-                  <h2>Open Habits</h2>
-                  <span class="mini">${habit.notesCount || 0} notes today</span>
-                </div>
-                <div class="list">
-                  ${renderHabitList(habit.missing)}
-                </div>
-              </article>
-
-              <article class="panel">
-                <div class="panel-title">
-                  <h2>Trading</h2>
-                  <span class="tag green">${trading.winRate || 0}% WR</span>
-                </div>
-                <div class="metric-row">
-                  <div>
-                    <div class="metric">${trading.closedTrades || 0}</div>
-                    <div class="mini">${trading.wins || 0} wins · ${trading.losses || 0} losses</div>
-                  </div>
-                </div>
-                <div class="progress"><span style="width:${Math.min(100, trading.winRate || 0)}%"></span></div>
-              </article>
-
-              <article class="panel wide">
-                <div class="panel-title">
-                  <h2>Recent Applications</h2>
-                  <span class="mini">${career.interviewPipeline || 0} interviews</span>
-                </div>
-                <div class="list">
-                  ${renderApplications(career.recent)}
-                </div>
-              </article>
-
-              <article class="panel">
-                <div class="panel-title">
-                  <h2>Recent Trades</h2>
-                  <span class="mini">7 days</span>
-                </div>
-                <div class="list">
-                  ${renderTrades(trading.recent)}
-                </div>
-              </article>
-            </section>
+            ${renderView()}
           </main>
 
           <aside class="right">
@@ -631,7 +826,17 @@
 
             <article class="panel">
               <div class="panel-title">
-                <h2>Career Mix</h2>
+                <h3>Today</h3>
+                <span class="tag green">${habit.percentage || 0}%</span>
+              </div>
+              <div class="metric compact">${habit.done || 0}/${habit.total || 0}</div>
+              <div class="mini">habits complete · ${habit.notesCount || 0} notes</div>
+              <div class="progress"><span style="width:${clampPercent(habit.percentage)}%"></span></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Career Mix</h3>
                 <span class="mini">${career.successRate || 0}% offer</span>
               </div>
               <div class="list">
@@ -641,21 +846,213 @@
 
             <article class="panel">
               <div class="panel-title">
-                <h2>Latest Audit</h2>
+                <h3>Latest Audit</h3>
                 <span class="tag pink">Row ${audit.row || "-"}</span>
               </div>
               <div class="audit-text">${escapeHtml(audit.preview || "No audit available yet.")}</div>
             </article>
           </aside>
         `;
+
+        bindShellEvents();
       }
 
-      function metricPanel(title, value, caption, percent) {
+      function renderView() {
+        if (activeView === "habit") return renderHabitView();
+        if (activeView === "career") return renderCareerView();
+        if (activeView === "trading") return renderTradingView();
+        if (activeView === "audit") return renderAuditView();
+        return renderHomeView();
+      }
+
+      function renderHomeView() {
+        const data = dashboardData || {};
+        const habit = data.habit || {};
+        const career = data.career || {};
+        const trading = data.trading || {};
+
+        return `
+          ${renderHero("Kanzan Command Center", "Daily execution, career pipeline, trading log, and AI audit in one operating view.", "Live operating layer")}
+          <section class="grid">
+            ${metricPanel("Today's Habits", `${habit.done || 0}/${habit.total || 0}`, `${habit.percentage || 0}% complete`, habit.percentage || 0, "green")}
+            ${metricPanel("Weekly Rhythm", `${habit.weeklyDone || 0}/${habit.weeklyTotal || 0}`, `${habit.weeklyPercentage || 0}% last 7 days`, habit.weeklyPercentage || 0, "cyan")}
+            ${metricPanel("Career Pipeline", career.totalApplications || 0, `${career.followUpsDue || 0} follow-ups due`, Math.min(100, career.totalApplications || 0), "pink")}
+
+            <article class="panel wide">
+              <div class="panel-title">
+                <h3>Open Habits</h3>
+                <span class="mini">${habit.notesCount || 0} notes today</span>
+              </div>
+              <div class="list">
+                ${renderHabitList(habit.missing, 6, "Open")}
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Trading</h3>
+                <span class="tag green">${trading.winRate || 0}% WR</span>
+              </div>
+              <div class="metric-row">
+                <div>
+                  <div class="metric">${trading.closedTrades || 0}</div>
+                  <div class="mini">${trading.wins || 0} wins · ${trading.losses || 0} losses</div>
+                </div>
+              </div>
+              <div class="progress"><span style="width:${clampPercent(trading.winRate)}%"></span></div>
+            </article>
+
+            <article class="panel wide">
+              <div class="panel-title">
+                <h3>Recent Applications</h3>
+                <span class="mini">${career.interviewPipeline || 0} interviews</span>
+              </div>
+              <div class="list">
+                ${renderApplications(career.recent)}
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Recent Trades</h3>
+                <span class="mini">7 days</span>
+              </div>
+              <div class="list">
+                ${renderTrades(trading.recent)}
+              </div>
+            </article>
+          </section>
+        `;
+      }
+
+      function renderHabitView() {
+        const habit = (dashboardData || {}).habit || {};
+
+        return `
+          ${renderViewTitle("Habit Console", "Daily checklist health and seven-day consistency.")}
+          <section class="grid">
+            ${metricPanel("Today", `${habit.done || 0}/${habit.total || 0}`, `${habit.percentage || 0}% complete`, habit.percentage || 0, "green")}
+            ${metricPanel("Open", (habit.missing || []).length, "items still active", (habit.total ? ((habit.missing || []).length / habit.total) * 100 : 0), "pink")}
+            ${metricPanel("Notes", habit.notesCount || 0, "context captured today", Math.min(100, (habit.notesCount || 0) * 20), "amber")}
+          </section>
+          <section class="grid two">
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Open Habits</h3>
+                <span class="tag pink">${(habit.missing || []).length} open</span>
+              </div>
+              <div class="list scroll">${renderHabitList(habit.missing, 20, "Open")}</div>
+            </article>
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Completed</h3>
+                <span class="tag green">${(habit.completed || []).length} done</span>
+              </div>
+              <div class="list scroll">${renderHabitList(habit.completed, 20, "Done", "green")}</div>
+            </article>
+          </section>
+        `;
+      }
+
+      function renderCareerView() {
+        const career = (dashboardData || {}).career || {};
+
+        return `
+          ${renderViewTitle("Career Pipeline", "Application volume, interview signal, follow-up pressure, and sector mix.")}
+          <section class="grid">
+            ${metricPanel("Applications", career.totalApplications || 0, "tracked rows", Math.min(100, career.totalApplications || 0), "cyan")}
+            ${metricPanel("Interviews", career.interviewPipeline || 0, "pipeline signal", Math.min(100, (career.interviewPipeline || 0) * 25), "green")}
+            ${metricPanel("Follow-ups", career.followUpsDue || 0, "due now", Math.min(100, (career.followUpsDue || 0) * 25), "pink")}
+          </section>
+          <section class="grid two">
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Recent Applications</h3>
+                <span class="tag">${career.rejectionRate || 0}% rejected</span>
+              </div>
+              <div class="list scroll">${renderApplications(career.recent)}</div>
+            </article>
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Sector Mix</h3>
+                <span class="tag amber">${(career.sectors || []).length} groups</span>
+              </div>
+              <div class="list">${renderSectors(career.sectors)}</div>
+            </article>
+          </section>
+        `;
+      }
+
+      function renderTradingView() {
+        const trading = (dashboardData || {}).trading || {};
+
+        return `
+          ${renderViewTitle("Trading Journal", "Closed trade activity from the last seven days.")}
+          <section class="grid">
+            ${metricPanel("Closed Trades", trading.closedTrades || 0, "last 7 days", Math.min(100, (trading.closedTrades || 0) * 20), "cyan")}
+            ${metricPanel("Wins", trading.wins || 0, `${trading.winRate || 0}% win rate`, trading.winRate || 0, "green")}
+            ${metricPanel("Losses", trading.losses || 0, "review queue", Math.min(100, (trading.losses || 0) * 25), "pink")}
+          </section>
+          <section class="grid">
+            <article class="panel wide">
+              <div class="panel-title">
+                <h3>Recent Trades</h3>
+                <span class="tag green">${trading.winRate || 0}% WR</span>
+              </div>
+              <div class="list scroll">${renderTrades(trading.recent)}</div>
+            </article>
+          </section>
+        `;
+      }
+
+      function renderAuditView() {
+        const audit = (dashboardData || {}).audit || {};
+
+        return `
+          ${renderViewTitle("AI Audit", "Latest saved weekly audit preview.")}
+          <section class="grid">
+            <article class="panel wide">
+              <div class="panel-title">
+                <h3>Latest Audit</h3>
+                <span class="tag pink">Row ${audit.row || "-"}</span>
+              </div>
+              <div class="audit-text">${escapeHtml(audit.preview || "No audit available yet.")}</div>
+            </article>
+          </section>
+        `;
+      }
+
+      function renderHero(title, subtitle, eyebrow) {
+        return `
+          <section class="hero">
+            <div class="hero-content">
+              <p class="eyebrow">${escapeHtml(eyebrow)}</p>
+              <h1>${escapeHtml(title)}</h1>
+              <p class="sub">${escapeHtml(subtitle)}</p>
+            </div>
+          </section>
+        `;
+      }
+
+      function renderViewTitle(title, subtitle) {
+        return `
+          <section class="view-title">
+            <div>
+              <h2>${escapeHtml(title)}</h2>
+              <p>${escapeHtml(subtitle)}</p>
+            </div>
+          </section>
+        `;
+      }
+
+      function metricPanel(title, value, caption, percent, tone) {
+        const tagClass = tone === "green" ? "green" : tone === "pink" ? "pink" : tone === "amber" ? "amber" : "";
+
         return `
           <article class="panel">
             <div class="panel-title">
-              <h2>${escapeHtml(title)}</h2>
-              <span class="mini">Live</span>
+              <h3>${escapeHtml(title)}</h3>
+              <span class="tag ${tagClass}">Live</span>
             </div>
             <div class="metric-row">
               <div>
@@ -663,23 +1060,23 @@
                 <div class="mini">${escapeHtml(caption)}</div>
               </div>
             </div>
-            <div class="progress"><span style="width:${Math.min(100, Number(percent) || 0)}%"></span></div>
+            <div class="progress"><span style="width:${clampPercent(percent)}%"></span></div>
           </article>
         `;
       }
 
-      function renderHabitList(items) {
+      function renderHabitList(items, limit, label, tone) {
         if (!items || items.length === 0) {
-          return `<div class="empty">All habits are clear for today.</div>`;
+          return `<div class="empty">No habit records in this state.</div>`;
         }
 
-        return items.slice(0, 6).map(item => `
+        return items.slice(0, limit || 6).map(item => `
           <div class="list-item">
             <div class="item-main">
               <div class="item-title">${escapeHtml(item.activity)}</div>
-              <div class="item-sub">${escapeHtml(item.category)}</div>
+              <div class="item-sub">${escapeHtml(item.category)}${item.note ? " · " + escapeHtml(item.note) : ""}</div>
             </div>
-            <span class="tag pink">Open</span>
+            <span class="tag ${tone === "green" ? "green" : "pink"}">${escapeHtml(label || "Open")}</span>
           </div>
         `).join("");
       }
@@ -693,9 +1090,9 @@
           <div class="list-item">
             <div class="item-main">
               <div class="item-title">${escapeHtml(item.companyName)}</div>
-              <div class="item-sub">${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category)}</div>
+              <div class="item-sub">${escapeHtml(item.jobTitle)} · ${escapeHtml(item.category || "Unmapped")} · ${escapeHtml(item.cvVersion || "General")}</div>
             </div>
-            <span class="tag">${escapeHtml(item.status)}</span>
+            <span class="tag ${getStatusTone(item.status)}">${escapeHtml(item.status)}</span>
           </div>
         `).join("");
       }
@@ -709,9 +1106,9 @@
           <div class="list-item">
             <div class="item-main">
               <div class="item-title">${escapeHtml(item.symbol)} ${escapeHtml(item.side)}</div>
-              <div class="item-sub">${escapeHtml(item.exitDate)} · ${escapeHtml(item.remarks)}</div>
+              <div class="item-sub">${escapeHtml(item.exitDate)} · ${escapeHtml(item.remarks || "No remarks")}</div>
             </div>
-            <span class="tag ${item.outcome === "Win" ? "green" : "pink"}">${escapeHtml(item.outcome)}</span>
+            <span class="tag ${item.outcome === "Win" ? "green" : item.outcome === "Loss" ? "pink" : "amber"}">${escapeHtml(item.outcome)}</span>
           </div>
         `).join("");
       }
@@ -722,6 +1119,7 @@
         }
 
         const max = Math.max(...items.map(item => item.count), 1);
+
         return items.map(item => `
           <div>
             <div class="sector-bar">
@@ -733,10 +1131,40 @@
         `).join("");
       }
 
+      function getStatusTone(status) {
+        const normalized = String(status || "").toLowerCase();
+        if (normalized.indexOf("interview") !== -1 || normalized.indexOf("offer") !== -1) return "green";
+        if (normalized.indexOf("rejected") !== -1 || normalized.indexOf("withdraw") !== -1) return "pink";
+        if (normalized.indexOf("assessment") !== -1) return "amber";
+        return "";
+      }
+
+      function clampPercent(value) {
+        return Math.max(0, Math.min(100, Number(value) || 0));
+      }
+
+      function bindShellEvents() {
+        app.querySelectorAll("[data-view]").forEach(button => {
+          button.addEventListener("click", () => {
+            activeView = button.getAttribute("data-view");
+            renderShell();
+          });
+        });
+
+        const refresh = app.querySelector("[data-refresh]");
+        if (refresh) {
+          refresh.addEventListener("click", loadDashboard);
+        }
+      }
+
       function renderError(error) {
         window.clearTimeout(loadTimer);
         app.className = "loading";
-        app.innerHTML = `Dashboard failed to load: ${escapeHtml(error && error.message ? error.message : error)}`;
+        app.innerHTML = `
+          <div class="loading-card">
+            Dashboard failed to load: ${escapeHtml(error && error.message ? error.message : error)}
+          </div>
+        `;
       }
     </script>
   </body>
