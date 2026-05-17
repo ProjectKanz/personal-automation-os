@@ -1259,17 +1259,121 @@
       }
 
       function renderAuditView() {
-        const audit = (dashboardData || {}).audit || {};
+        const data = dashboardData || {};
+        const audit = data.audit || {};
+        const habits = data.habits || {};
+        const career = data.career || {};
+        const trading = data.trading || {};
+
+        const rowLabel = audit.row || "-";
+        const preview = audit.preview || "No audit available yet.";
+
+        const habitDone = Number(habits.done || habits.completed || 0);
+        const habitTotal = Number(habits.total || 0);
+        const habitLabel = habitTotal ? `${habitDone}/${habitTotal}` : "-";
+
+        const applications = Number(career.totalApplications || career.applications || career.total || 0);
+        const interviews = Number(career.interviews || career.interviewCount || 0);
+
+        const netPnl = Number(trading.netPnl || trading.totalPnl || trading.pnl || 0);
+        const netPnlLabel = Number.isFinite(netPnl) ? formatMoney(netPnl) : "-";
+
+        let priority = "Maintenance Mode";
+        let priorityTone = "green";
+
+        if (Number.isFinite(netPnl) && netPnl < 0) {
+          priority = "Risk Control";
+          priorityTone = "pink";
+        } else if (habitTotal && habitDone / habitTotal < 0.6) {
+          priority = "Habit Recovery";
+          priorityTone = "amber";
+        } else if (applications > 0 && interviews === 0) {
+          priority = "Career Follow-up";
+          priorityTone = "cyan";
+        }
+
+        const actions = [];
+
+        if (habitTotal && habitDone / habitTotal < 0.6) {
+          actions.push("Complete 3 core habits tomorrow before adding extra tasks.");
+        }
+
+        if (applications > 0 && interviews === 0) {
+          actions.push("Review follow-ups and improve CV targeting for active applications.");
+        }
+
+        if (Number.isFinite(netPnl) && netPnl < 0) {
+          actions.push("Review losing trades before taking more trades.");
+        }
+
+        if (actions.length === 0) {
+          actions.push("Maintain the current workflow and review progress again next week.");
+        }
 
         return `
-          ${renderViewTitle("AI Audit", "Latest saved weekly audit preview.")}
+          ${renderViewTitle("AI Audit", "Weekly operating review and next actions.")}
           <section class="grid">
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Weekly Scorecard</h3>
+                <span class="tag cyan">Snapshot</span>
+              </div>
+              <div class="stat">
+                <span>Habit Completion</span>
+                <strong>${escapeHtml(habitLabel)}</strong>
+              </div>
+              <div class="stat">
+                <span>Applications</span>
+                <strong>${escapeHtml(applications)}</strong>
+              </div>
+              <div class="stat">
+                <span>Trading Net P/L</span>
+                <strong>${escapeHtml(netPnlLabel)}</strong>
+              </div>
+              <div class="stat">
+                <span>Latest Audit Row</span>
+                <strong>${escapeHtml(rowLabel)}</strong>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Weekly Priority</h3>
+                <span class="tag ${escapeHtml(priorityTone)}">${escapeHtml(priorityTone)}</span>
+              </div>
+              <div class="list">
+                <div class="list-item">
+                  <div class="item-main">
+                    <div class="item-title">${escapeHtml(priority)}</div>
+                    <div class="item-sub">Rule-based weekly focus from current dashboard data.</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
             <article class="panel wide">
               <div class="panel-title">
                 <h3>Latest Audit</h3>
-                <span class="tag pink">Row ${audit.row || "-"}</span>
+                <span class="tag pink">Row ${escapeHtml(rowLabel)}</span>
               </div>
-              <div class="audit-text">${escapeHtml(audit.preview || "No audit available yet.")}</div>
+              <div class="audit-text">${escapeHtml(preview)}</div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-title">
+                <h3>Next 3 Actions</h3>
+                <span class="tag amber">Action</span>
+              </div>
+              <div class="list">
+                ${actions.slice(0, 3).map(action => `
+                  <div class="list-item">
+                    <div class="item-main">
+                      <div class="item-title">${escapeHtml(action)}</div>
+                      <div class="item-sub">Suggested by rule-based audit logic.</div>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
             </article>
           </section>
         `;
