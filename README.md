@@ -25,6 +25,14 @@ This project provides one automation layer to:
 
 ## Core Capabilities
 
+- **V3.4 Web Command Center**
+  - Apps Script web dashboard with sidebar navigation
+  - Home, Habit, Career, Trading, and AI Audit views
+  - Career pipeline dashboard with sector mix visibility
+  - Trading dashboard with custom date range filtering
+  - Trading money condition cumulative P/L chart
+  - AI Audit decision board for weekly diagnosis, current priority, next actions, and audit evidence
+
 - **Daily activity tracking**
   - Generate daily checklist entries from a master habit sheet
   - Sync checklist status between dashboard and database sheets
@@ -54,7 +62,7 @@ This project provides one automation layer to:
 
 The current MVP supports a practical review loop:
 
-`daily tracking → reminder → note capture → closing review → weekly snapshot → AI audit → audit retrieval`
+`daily tracking -> reminder -> note capture -> closing review -> weekly snapshot -> AI audit -> web dashboard review`
 
 This keeps the daily habit record useful for the weekly audit without adding a complex product layer.
 
@@ -67,20 +75,30 @@ This keeps the daily habit record useful for the weekly audit without adding a c
 - Gemini Vision (image-to-structured-data extraction, tested with MT5 history screenshots)
 - Git (local version control and modular refactor workflow)
 
-## Current Architecture (V2.9)
+## V3.4 Feature Summary
+
+V3.4 adds a working Apps Script web dashboard layer on top of the existing Telegram and Google Sheets workflow. The web dashboard is a personal command center for reviewing habits, career applications, trading performance, and AI audit output in one place.
+
+The AI Audit tab now works as a weekly decision board instead of a raw text preview, with Weekly Diagnosis, Current Priority, Next 3 Actions, and Audit Evidence panels.
+
+## Current Architecture (V3.4 Web Command Center)
 
 Apps Script modules are organized by responsibility:
 
 - `src/telegram.gs` - Telegram webhook, message handling, bot responses
 - `src/habit.gs` - daily checklist generation and habit sync logic
+- `src/career.gs` - career pipeline data support and application intelligence
+- `src/trading.gs` - trading dashboard data support and performance calculations
 - `src/tradingParser.gs` - Gemini Vision trade extraction
 - `src/weeklyAudit.gs` - weekly data aggregation and audit generation
 - `src/utils.gs` - shared utilities and script property helpers
+- `src/Index.html` - Apps Script web dashboard UI for the V3.4 command center
 
 ## Skills Demonstrated
 
 - End-to-end automation workflow design
 - Telegram + Google Apps Script integration
+- Apps Script HTML web dashboard development
 - Gemini Vision image-to-structured-data extraction
 - Weekly AI-generated reporting
 - Modular Apps Script refactor
@@ -112,7 +130,7 @@ If a required property is missing, the script now fails with a clear error messa
 ## Repository Documents
 
 - `docs/project-summary.md` - concise portfolio summary
-- `docs/changelog.md` - version history across V1 through V2.9
+- `docs/changelog.md` - version history across V1 through V3.4
 
 ## License
 

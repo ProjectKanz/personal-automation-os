@@ -4,10 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
-## V3.4 (May 2026) - Evidence Packaging & Content Strategy
+## V3.4 (May 2026) - Web Command Center
 
 ### Added
 
+- Apps Script web dashboard with sidebar navigation.
+- Home, Habit, Career, Trading, and AI Audit views.
+- Career pipeline dashboard with sector mix visibility.
+- Trading custom date range filter.
+- Trading money condition cumulative P/L chart.
+- AI Audit decision board with Weekly Diagnosis, Current Priority, Next 3 Actions, and Audit Evidence.
 - `SYSTEM_STATE` metadata for the active product version and phase.
 - `VERSION_HISTORY` scope for V3.0-V3.4 evidence packaging.
 - `generateLinkedInCampaign()` to create LinkedIn hook, carousel blueprint, video idea, and data signal from career intelligence metrics.
@@ -17,6 +23,9 @@ All notable changes to this project are documented here.
 
 ### Notes
 
+- V3.4 Web Command Center is working as a personal MVP/prototype dashboard.
+- Telegram + Google Sheets workflow remains part of the system.
+- Web dashboard layer does not change the positioning of this project as a single-operator prototype.
 - `/share` only highlights V3.0-V3.4 career intelligence features.
 - Output emphasizes Operational Excellence and AI Engineering.
 - No legacy V2 features are included in the campaign package.
