@@ -231,7 +231,7 @@ let weeklyApplications = [];
 
 appData.slice(1).forEach(row => {
   const dateApplied = row[3] ? new Date(row[3]) : null;
-  const status = row[7] ? row[7].toString().trim() : "";
+  const status = row[4] ? row[4].toString().trim() : "";
   const company = row[0];
   const jobTitle = row[1];
 

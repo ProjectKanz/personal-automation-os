@@ -88,7 +88,7 @@ Apps Script modules are organized by responsibility:
 - `src/telegram.gs` - Telegram webhook, message handling, bot responses
 - `src/habit.gs` - daily checklist generation and habit sync logic
 - `src/career.gs` - career pipeline data support and application intelligence
-- `src/trading.gs` - trading dashboard data support and performance calculations
+- `src/webapp.gs` - web dashboard data support, including trading dashboard calculations
 - `src/tradingParser.gs` - Gemini Vision trade extraction
 - `src/weeklyAudit.gs` - weekly data aggregation and audit generation
 - `src/utils.gs` - shared utilities and script property helpers
@@ -124,8 +124,42 @@ Set required Script Properties in Apps Script:
 - `TELEGRAM_TOKEN`
 - `TELEGRAM_USER_ID`
 - `WEB_APP_URL`
+- `WEB_APP_MT_CV_FOLDER_ID`
+- `WEB_APP_DATA_CV_FOLDER_ID`
 
 If a required property is missing, the script now fails with a clear error message (V2.1-B hardening).
+
+## Setup Notes
+
+1. Copy `.clasp.example.json` to `.clasp.json` locally and add your own Apps Script project ID.
+2. Keep `.clasp.json` untracked because it identifies a real Apps Script deployment.
+3. Configure the required Script Properties in the Apps Script editor.
+4. Prepare the expected Google Sheets tabs, including `Daily_DB`, `Master_Habit`, `Log`, `Applications`, `AI_Audit`, and `System_Log`.
+5. Deploy the Apps Script web app for personal access and configure the Telegram webhook only in your private environment.
+
+## Screenshots and Demo
+
+Screenshots should use anonymized or mock data only.
+
+- Web command center home
+- Habit checklist view
+- Career pipeline view with mock company names
+- Trading dashboard with sample/non-private records
+- AI Audit view with sanitized generated text
+- Telegram command demo with fake messages
+
+See `portfolio/mock-demo-checklist.md` for a simple publication demo checklist.
+
+## Security and Privacy Notes
+
+- Do not commit API keys, Telegram tokens, webhook URLs, spreadsheet URLs, Drive folder IDs, CV links, or private operational data.
+- Store secrets and deployment-specific IDs in Apps Script Properties, not in source files.
+- Uploaded CV files are kept private by default. Share only sanitized demo files manually when needed.
+- Public screenshots and videos should use fake names, fake applications, fake trading values, and sanitized audit text.
+
+## Disclaimer
+
+This project is a personal MVP and portfolio case study. It is not financial advice, not trading automation, and not enterprise production software.
 
 ## Repository Documents
 

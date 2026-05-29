@@ -1,5 +1,5 @@
 {
-  "scriptId": "12X31XYIgXt7ZA-F9u4CcK1gsQ8CBTxRkWzQCrr3OdZwOMTf5S8vtvaiG",
+  "scriptId": "YOUR_APPS_SCRIPT_PROJECT_ID",
   "rootDir": "./src",
   "scriptExtensions": [
     ".js",

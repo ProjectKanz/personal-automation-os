@@ -160,7 +160,6 @@ function generateCareerMemo() {
 }
 
 function generateLinkedInCampaign() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const analysis = buildCareerStrategyAnalysis_();
   const totalApplications = analysis.rows.length;
   const bestTag = analysis.cvPerformance.bestTag;
@@ -208,7 +207,7 @@ function generateLinkedInCampaign() {
       version: SYSTEM_STATE.version,
       phase: SYSTEM_STATE.phase,
       allowedFeatureScope: VERSION_HISTORY["V3.0-V3.4"],
-      spreadsheetUrl: ss.getUrl()
+      spreadsheetUrl: "Private spreadsheet - not included in public demo"
     }
   };
 }
@@ -256,7 +255,7 @@ function prepLookerExport() {
   return {
     sheetName: "Looker_Data",
     rowCount: exportRows.length,
-    spreadsheetUrl: ss.getUrl()
+    spreadsheetUrl: "Private spreadsheet - not included in public demo"
   };
 }
 
@@ -269,7 +268,7 @@ function generateGitHubREADME() {
     : "The CV performance layer is ready to surface response gaps once more data is available.";
 
   return [
-    "# Kemas Personal Productivity OS - V3",
+    "# Portfolio User Productivity OS - V3",
     "",
     "## Project Overview",
     "",

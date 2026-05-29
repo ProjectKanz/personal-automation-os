@@ -7,8 +7,8 @@ function doGet() {
 }
 
 
-const WEB_APP_MT_CV_FOLDER_ID = "1rzxhejziuU6_L11y9DRi-Exup5K5SbwJ";
-const WEB_APP_DATA_CV_FOLDER_ID = "1a8lnZT-pSlYhoaxazA-vRxDri5BEuDwn";
+const WEB_APP_MT_CV_FOLDER_PROPERTY = "WEB_APP_MT_CV_FOLDER_ID";
+const WEB_APP_DATA_CV_FOLDER_PROPERTY = "WEB_APP_DATA_CV_FOLDER_ID";
 
 
 function getWebDashboardData() {
@@ -167,12 +167,9 @@ function uploadWebApplicationCv_(cvFile) {
     .createFile(blob)
     .setName(fileName);
 
-
-  try {
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (error) {
-    console.warn("Could not set CV sharing permission: " + getErrorMessage_(error));
-  }
+  // Portfolio safety: keep uploaded CVs private by default.
+  // If a reviewer needs access, share a sanitized demo file manually instead of
+  // making every uploaded CV public with ANYONE_WITH_LINK.
 
 
   return file.getUrl();
@@ -184,16 +181,16 @@ function getWebApplicationCvFolderId_(fileName) {
 
 
   if (lowerName.indexOf("mt") !== -1) {
-    return WEB_APP_MT_CV_FOLDER_ID;
+    return getRequiredProperty(WEB_APP_MT_CV_FOLDER_PROPERTY);
   }
 
 
   if (lowerName.indexOf("data") !== -1) {
-    return WEB_APP_DATA_CV_FOLDER_ID;
+    return getRequiredProperty(WEB_APP_DATA_CV_FOLDER_PROPERTY);
   }
 
 
-  return WEB_APP_DATA_CV_FOLDER_ID;
+  return getRequiredProperty(WEB_APP_DATA_CV_FOLDER_PROPERTY);
 }
 
 
