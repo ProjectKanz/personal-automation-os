@@ -616,6 +616,10 @@
         text-decoration: underline;
       }
 
+      .screenshot-hidden {
+        display: none !important;
+      }
+
       .item-action {
         min-height: 38px;
         border-radius: 7px;
@@ -1020,7 +1024,7 @@
                 <span class="status-text">${escapeHtml(getSyncStatusText(data.generatedAt))}</span>
               </div>
               <button class="action-button" data-refresh="true">Refresh</button>
-              <a class="open-link" href="${escapeHtml(data.spreadsheetUrl || "#")}" target="_blank">Open Sheet</a>
+              <a class="open-link screenshot-hidden" href="${escapeHtml(data.spreadsheetUrl || "#")}" target="_blank">Open Sheet</a>
             </div>
 
             <div class="mobile-tabs">
@@ -1038,7 +1042,7 @@
             <div class="profile">
               <div class="avatar">OS</div>
               <div class="profile-name">Portfolio User</div>
-              <div class="profile-sub">V3.4 · Agentic AI</div>
+              <div class="profile-sub">V3.4 · AI-assisted Workflow</div>
             </div>
 
             <article class="panel">
@@ -1089,7 +1093,7 @@
         const trading = data.trading || {};
 
         return `
-          ${renderHero("Portfolio Command Center", "Daily execution, career pipeline, trading log, and AI audit in one operating view.", "Live operating layer")}
+          ${renderHero("Personal Workflow Command Center", "Daily execution, career pipeline, trading log, and AI audit in one operating view.", "Live operating layer")}
           <section class="grid">
             ${metricPanel("Today's Habits", `${habit.done || 0}/${habit.total || 0}`, `${habit.percentage || 0}% complete`, habit.percentage || 0, "green")}
             ${metricPanel("Weekly Rhythm", `${habit.weeklyDone || 0}/${habit.weeklyTotal || 0}`, `${habit.weeklyPercentage || 0}% last 7 days`, habit.weeklyPercentage || 0, "cyan")}
