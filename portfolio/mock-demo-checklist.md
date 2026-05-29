@@ -2,6 +2,8 @@
 
 Use mock data only when preparing screenshots, clips, or a public walkthrough.
 
+This checklist is for the V3.4 Web Command Center and related Telegram/Sheets workflow.
+
 ## Safe Demo Data
 
 - Use placeholder user names such as `Portfolio User` or `Demo User`.
@@ -10,6 +12,7 @@ Use mock data only when preparing screenshots, clips, or a public walkthrough.
 - Use sample habit names that do not reveal private routines.
 - Use non-private trading examples with small round numbers, or clearly label them as sample data.
 - Use a sanitized AI audit that does not mention real companies, CV links, account values, personal issues, or private notes.
+- Use neutral dashboard labels such as `Personal Workflow Command Center` and `Portfolio User`.
 
 ## Demo Flow
 

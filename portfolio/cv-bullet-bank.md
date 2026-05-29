@@ -6,6 +6,7 @@ Use and adapt these bullets based on role focus.
 
 - Built a personal MVP workflow automation system using Google Apps Script + Google Sheets to consolidate daily activity, screenshot-based records, and job application tracking into a structured reporting pipeline.
 - Designed sheet-based data flows that reduced manual logging steps and improved consistency of weekly review data.
+- Built a V3.4 web command center for reviewing Habit, Career, Trading, and AI Audit data from one interface.
 - Implemented a full daily-to-weekly review loop: daily tracking, reminders, note capture, closing review, weekly snapshots, AI audit generation, and saved audit retrieval.
 - Added note-aware weekly reporting so incomplete habits can include context/reasons instead of being treated as raw misses.
 - Created a modular script architecture (`telegram`, `habit`, `tradingParser`, `weeklyAudit`, `utils`) to improve maintainability and change control.
@@ -18,6 +19,7 @@ Use and adapt these bullets based on role focus.
 - Implemented screenshot-to-database extraction using Gemini Vision (tested with MT5 history screenshots) to reduce manual transcription effort.
 - Added daily reminder, closing review, and note capture commands to improve data completeness before weekly review.
 - Added weekly and daily visibility commands to surface progress without triggering AI calls.
+- Added a web command center layer to make review workflows easier to demo and inspect.
 - Improved operational reliability through required configuration checks and clearer error handling in the automation runtime.
 
 ## AI Automation / Digital Transformation
@@ -25,9 +27,10 @@ Use and adapt these bullets based on role focus.
 - Developed an AI-assisted automation MVP combining Telegram Bot API, Google Apps Script, Google Sheets, Gemini API, and Gemini Vision.
 - Built an end-to-end flow from input capture to structured storage to AI-generated reporting without introducing complex infrastructure.
 - Applied Gemini Vision for image-to-structured-data extraction and Gemini text generation for weekly report synthesis.
+- Used Git, clasp, and AI-assisted development tools to iterate on the Apps Script codebase and portfolio documentation.
 - Iterated through usability and context upgrades from V2.2-V2.9 while preserving schema compatibility and existing functional behavior.
 - Positioned the project as a practical personal prototype for workflow automation, not enterprise production software.
 
 ## Optional One-Line Project Entry
 
-- **AI Workflow Automation OS (Personal MVP):** Built a Google Apps Script-based automation system that consolidates daily tracking, reminders, note capture, screenshot-based extraction, job application monitoring, and weekly AI-generated review into a structured Sheets workflow.
+- **AI Workflow Automation OS (Personal MVP):** Built a Google Apps Script-based automation system with a V3.4 web command center that consolidates daily tracking, reminders, note capture, screenshot-based extraction, job application monitoring, and weekly AI-assisted review into a structured Sheets workflow.

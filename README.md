@@ -1,6 +1,6 @@
 # AI Workflow Automation OS
 
-Personal MVP/prototype for daily activity tracking, screenshot-based data extraction, job application monitoring, and AI-generated weekly reporting.
+Personal MVP/prototype for daily activity tracking, screenshot-based data extraction, job application monitoring, a V3.4 web command center, and AI-assisted weekly reporting.
 
 ## Overview
 
@@ -74,6 +74,8 @@ This keeps the daily habit record useful for the weekly audit without adding a c
 - Gemini API (text analysis for weekly audits)
 - Gemini Vision (image-to-structured-data extraction, tested with MT5 history screenshots)
 - Git (local version control and modular refactor workflow)
+- clasp (Apps Script local development/deployment workflow)
+- Cursor/Codex (AI-assisted development and documentation review)
 
 ## V3.4 Feature Summary
 
@@ -115,6 +117,12 @@ This project is a **personal MVP/prototype**.
 - It is suitable for demonstrating architecture, integration, and iteration discipline.
 - It is not positioned as enterprise-grade production software.
 - It does not claim guaranteed AI accuracy.
+
+## Public Usage Note
+
+This project is currently shared as a portfolio case study, not a plug-and-play public template.
+The original Google Sheets database contains private workflow data, so a sanitized sheet template is not included yet.
+A mock template and setup walkthrough may be added in a future version.
 
 ## Configuration Notes
 
@@ -165,6 +173,12 @@ This project is a personal MVP and portfolio case study. It is not financial adv
 
 - `docs/project-summary.md` - concise portfolio summary
 - `docs/changelog.md` - version history across V1 through V3.4
+- `portfolio/demo-flow.md` - walkthrough of the workflow and demo talk track
+- `portfolio/interview-story.md` - STAR-format explanation for interviews
+- `portfolio/cv-bullet-bank.md` - role-targeted project bullets
+- `portfolio/linkedin-draft-v2.1.md` - archived LinkedIn draft for the V2.1 milestone
+- `portfolio/linkedin-draft-v3.4.md` - current LinkedIn draft for the V3.4 portfolio case study
+- `portfolio/mock-demo-checklist.md` - safe public demo checklist
 
 ## License
 

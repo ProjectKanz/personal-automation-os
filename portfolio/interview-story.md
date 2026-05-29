@@ -30,10 +30,12 @@ I also wanted the project to be portfolio-ready and explainable in interviews, w
 - Upgraded weekly audit UX in V2.3 so `/audit` returns success/error feedback and a preview, while using habit notes/reasons from `Daily_DB`.
 - Added daily reminder, missing-habit, note capture, closing review, daily snapshot, weekly snapshot, and last-audit access commands across V2.4-V2.9.
 - Added a light spreadsheet visual layer for selected portfolio-facing sheets while avoiding operational sheet schema changes.
+- Added the V3/V3.4 web command center to review Habit, Career, Trading, and AI Audit data from one interface.
+- Prepared the documentation and demo assets for public portfolio use with sanitized data only.
 
 ## Result
 
-- I now have a working personal automation MVP that connects daily tracking, reminders, note capture, closing review, weekly snapshots, AI audit generation, and saved audit retrieval in one flow.
+- I now have a working personal automation MVP that connects daily tracking, reminders, note capture, closing review, weekly snapshots, AI audit generation, saved audit retrieval, and a V3.4 web command center in one flow.
 - The codebase is cleaner to maintain after modularization and easier to explain to non-technical stakeholders.
 - The project demonstrates practical workflow automation, integration design, and incremental improvement discipline.
 - I do not position it as enterprise-ready software; I position it as a realistic prototype with clear next-step pathways.
@@ -43,3 +45,4 @@ I also wanted the project to be portfolio-ready and explainable in interviews, w
 - Fast MVPs benefit from early modular boundaries, even in small Apps Script projects.
 - AI-assisted extraction/reporting is more useful when paired with structured logging, human notes, and clear validation points.
 - Documentation quality significantly improves portfolio communication and interview outcomes.
+- Public portfolio demos need sanitized data, especially when the original workflow touches CVs, job applications, trading records, and private spreadsheets.

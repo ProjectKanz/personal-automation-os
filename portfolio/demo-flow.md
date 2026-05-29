@@ -1,6 +1,14 @@
-# Demo Flow - AI Workflow Automation OS (Personal MVP)
+# Demo Flow - AI Workflow Automation OS (V3.4 Personal MVP)
 
 Simple walkthrough of the end-to-end flow:
+
+Use mock or sanitized data for all screenshots, clips, and public walkthroughs.
+
+## 0) Web Command Center Overview
+
+- Open the V3.4 web command center.
+- Show the Home, Habit, Career, Trading, and AI Audit views with mock data.
+- Avoid showing real spreadsheet URLs, CV links, Telegram chat IDs, private job applications, or real trading records.
 
 ## 1) Telegram Input
 
@@ -42,11 +50,11 @@ Simple walkthrough of the end-to-end flow:
 
 The current MVP supports this loop:
 
-`daily tracking → reminder → note capture → closing review → weekly snapshot → AI audit → audit retrieval`
+`daily tracking → reminder → note capture → closing review → weekly snapshot → AI audit → web dashboard review`
 
 ## Demo Talk Track (60-90 seconds)
 
-"This personal MVP shows an AI workflow automation loop. Input starts in Telegram, Apps Script validates and routes it, then structured data is stored in Google Sheets. Daily habit tracking now includes reminders, note capture, and a closing review so the weekly audit has better context. Gemini Vision handles screenshot-to-structured-data extraction for tested MT5 history screenshots, and Gemini generates a weekly report from aggregated records. The focus is practical automation and reporting consistency, not enterprise-scale deployment."
+"This personal MVP shows an AI-assisted workflow automation loop. Input can start in Telegram or be reviewed through the V3.4 web command center. Apps Script validates and routes the data, then structured records are stored in Google Sheets. Daily habit tracking includes reminders, note capture, and a closing review so the weekly audit has better context. Gemini Vision supports screenshot-to-structured-data extraction for tested examples, and Gemini generates a weekly report from aggregated records. The focus is practical automation and reporting consistency, not enterprise-scale deployment."
 
 ## V2.2 Telegram Demo Notes
 
@@ -70,3 +78,10 @@ The current MVP supports this loop:
 - `/daily` and `/week`: provide non-AI snapshots of habit progress.
 - `/lastaudit`: retrieves the latest saved audit preview without generating a new one.
 - `applyPortfolioSheetTheme()`: applies a light visual layer to selected portfolio-facing sheets.
+
+## V3.4 Demo Notes
+
+- Use the web command center as the main public demo surface.
+- Show Habit, Career, Trading, and AI Audit views with mock or anonymized records.
+- Treat Telegram as a supporting workflow, not the only demo surface.
+- Keep real CV files, spreadsheet links, Telegram setup screens, and private trading/application data out of public assets.

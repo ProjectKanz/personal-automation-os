@@ -30,7 +30,7 @@ All notable changes to this project are documented here.
 - Output emphasizes Operational Excellence and AI Engineering.
 - No legacy V2 features are included in the campaign package.
 - Campaign story follows the V3 evolution arc: Foundation, Workflow, and Intelligence.
-- `/share` refreshes Looker data and includes a spreadsheet reference plus README proof prompt.
+- `/share` refreshes portfolio-facing summary data and includes documentation prompts for README proof.
 - CV tagging now supports inferred MT tags, Automation-over-Data priority, and more robust case-insensitive filename matching.
 - Corporate intelligence now decodes recruitment abbreviations such as ULFP, ODP, BDP, MDP, CCEP, GTP, and MT for industry and CV analysis.
 - Career Advisor status logic now separates Applied, Assessment Stage, and Interview while excluding Saved/Rejected from CV performance rates.
